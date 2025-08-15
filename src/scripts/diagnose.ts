@@ -2,7 +2,7 @@ import '@shopify/shopify-api/adapters/web-api'
 
 import { ApiVersion, Session, shopifyApi } from '@shopify/shopify-api'
 
-import { getAllFulfilledOrders, getProviderStats } from './db'
+import { getAllFulfilledOrders, getProviderStats } from '../db'
 
 // Check environment variables
 console.log('=== Environment Check ===')
@@ -264,9 +264,9 @@ async function diagnose() {
       if (recentOrders.length > 0) {
         console.log('\n   Recent fulfillments:')
         recentOrders.forEach(order => {
-          const date = new Date(order.created_at! * 1000).toISOString()
+          const date = new Date(order.createdAt * 1000).toISOString()
           console.log(
-            `   - ${order.provider} #${order.provider_order_id} → Shopify #${order.shopify_order_number} (${date})`
+            `   - ${order.provider} #${order.providerOrderId} → Shopify #${order.shopifyOrderNumber} (${date})`
           )
         })
       }

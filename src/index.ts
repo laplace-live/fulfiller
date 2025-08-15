@@ -66,10 +66,10 @@ async function processShippedOrder(order: RouzaoOrderItem): Promise<void> {
       // Store in database
       storeFulfilledOrder({
         provider: 'rouzao',
-        provider_order_id: order.order_id,
-        shopify_order_number: shopifyOrderNumber,
-        shopify_order_id: shopifyOrder.id,
-        fulfilled_at: Math.floor(Date.now() / 1000),
+        providerOrderId: order.order_id,
+        shopifyOrderNumber: shopifyOrderNumber,
+        shopifyOrderId: shopifyOrder.id,
+        fulfilledAt: Math.floor(Date.now() / 1000),
       })
 
       console.log(`[${new Date().toISOString()}] ✅ Successfully fulfilled Shopify order #${shopifyOrderNumber}`)
