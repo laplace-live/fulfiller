@@ -3,8 +3,13 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "dependencies": {
+    "croner": "^9.1.0"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@ianvs/prettier-plugin-sort-imports": "^4.6.2",
+    "@types/bun": "^1.2.20",
+    "prettier": "^3.6.2"
   },
   "peerDependencies": {
     "typescript": "^5.9.2"
