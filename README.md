@@ -137,7 +137,11 @@ To see more detailed logs, you can modify the console.log statements in the code
 Run the diagnostic script to check your Shopify API permissions and connections:
 
 ```bash
+# REST version (legacy)
 bun run diagnose.ts
+
+# GraphQL version (recommended)
+bun run diagnose-graphql.ts
 ```
 
 This will test:
@@ -147,21 +151,47 @@ This will test:
 - Access scopes granted to your app
 - Locations API access (lists all warehouse locations)
 - Orders and Fulfillment Orders API access
+- Rouzao location availability
 
 ## Development
+
+### GraphQL API Version
+
+This project uses the Shopify GraphQL Admin API v9 with the modern `request` method. The GraphQL queries follow the [v9 migration guide](https://raw.githubusercontent.com/Shopify/shopify-app-js/refs/heads/main/packages/apps/shopify-api/docs/migrating-to-v9.md) best practices.
 
 ### Project Structure
 
 ```
-├── index.ts               # Main application entry point
+├── index.ts               # Main application entry point (REST)
+├── index-graphql.ts       # GraphQL version (recommended)
 ├── db.ts                  # SQLite database operations
-├── shopify.ts             # Shopify API integration (with locations)
-├── shopify-fulfillment.ts # Alternative Shopify integration (without locations)
+├── shopify.ts             # Shopify REST API integration
+├── shopify-graphql.ts     # Shopify GraphQL API integration (recommended)
 ├── rouzao.ts              # Rouzao API functions
 ├── types.ts               # TypeScript type definitions
-├── diagnose.ts            # Diagnostic tool for checking API permissions
+├── diagnose.ts            # REST diagnostic tool
+├── diagnose-graphql.ts    # GraphQL diagnostic tool (recommended)
+├── queries.graphql.ts     # GraphQL queries for type generation
+├── MIGRATION_GUIDE.md     # Guide for migrating from REST to GraphQL
 └── fulfillments.db        # SQLite database (auto-created)
 ```
+
+### REST vs GraphQL
+
+**Important**: As of October 1, 2024, Shopify's REST Admin API is legacy. New implementations should use GraphQL.
+
+This project includes both implementations:
+
+- **REST** (`index.ts` + `shopify.ts`) - Legacy but functional
+- **GraphQL** (`index-graphql.ts` + `shopify-graphql.ts`) - Recommended
+
+To use the GraphQL version:
+
+```bash
+bun run index-graphql.ts
+```
+
+The GraphQL implementation uses Shopify's modern v9 API with the `request` method for better type safety and follows the [official migration guide](https://raw.githubusercontent.com/Shopify/shopify-app-js/refs/heads/main/packages/apps/shopify-api/docs/migrating-to-v9.md).
 
 ### Adding Features
 

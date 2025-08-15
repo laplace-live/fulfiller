@@ -3,12 +3,16 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "graphql-codegen": "graphql-codegen"
+  },
   "dependencies": {
     "@shopify/shopify-api": "^11.14.1",
     "croner": "^9.1.0"
   },
   "devDependencies": {
     "@ianvs/prettier-plugin-sort-imports": "^4.6.2",
+    "@shopify/api-codegen-preset": "^1.1.9",
     "@types/bun": "^1.2.20",
     "prettier": "^3.6.2"
   },
