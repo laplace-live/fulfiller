@@ -169,7 +169,7 @@ export async function createFulfillmentGraphQL(order: OrderNode, trackingInfo?: 
         return false
       }
 
-      console.log(`[${new Date().toISOString()}] ✅ Successfully created fulfillment ${result?.fulfillment?.id}`)
+      console.log(`[${new Date().toISOString()}] 📦 Successfully created fulfillment ${result?.fulfillment?.id}`)
     }
 
     return true

@@ -2,6 +2,8 @@ import '@shopify/shopify-api/adapters/web-api'
 
 import { ApiVersion, Session, shopifyApi } from '@shopify/shopify-api'
 
+import { getAllFulfilledOrders, getProviderStats } from './db'
+
 // Check environment variables
 console.log('=== Environment Check ===')
 console.log('SHOPIFY_API_KEY:', process.env['SHOPIFY_API_KEY'] ? '✓ Set' : '✗ Missing')
@@ -245,6 +247,34 @@ async function diagnose() {
     }
   } catch (error: any) {
     console.error('✗ Failed to check Rouzao locations:', error.message)
+  }
+
+  // Test 6: Check database statistics
+  console.log('\n6. Database Statistics...')
+  try {
+    const stats = getProviderStats()
+    if (stats.length > 0) {
+      console.log('✓ Fulfillment statistics by provider:')
+      stats.forEach(stat => {
+        console.log(`   - ${stat.provider}: ${stat.count} orders`)
+      })
+
+      // Show recent fulfillments
+      const recentOrders = getAllFulfilledOrders().slice(0, 5)
+      if (recentOrders.length > 0) {
+        console.log('\n   Recent fulfillments:')
+        recentOrders.forEach(order => {
+          const date = new Date(order.created_at! * 1000).toISOString()
+          console.log(
+            `   - ${order.provider} #${order.provider_order_id} → Shopify #${order.shopify_order_number} (${date})`
+          )
+        })
+      }
+    } else {
+      console.log('✓ No fulfillments in database yet')
+    }
+  } catch (error: any) {
+    console.error('✗ Failed to read database:', error.message)
   }
 }
 

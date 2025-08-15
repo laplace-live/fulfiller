@@ -9,7 +9,7 @@ import type { RouzaoOrderItem, RouzaoOrders } from './types'
 async function processShippedOrder(order: RouzaoOrderItem): Promise<void> {
   try {
     // Check if already processed
-    if (isOrderFulfilled(order.order_id)) {
+    if (isOrderFulfilled('rouzao', order.order_id)) {
       console.log(`[${new Date().toISOString()}] Order ${order.order_id} already fulfilled, skipping...`)
       return
     }
@@ -65,7 +65,8 @@ async function processShippedOrder(order: RouzaoOrderItem): Promise<void> {
     if (success) {
       // Store in database
       storeFulfilledOrder({
-        rouzao_order_id: order.order_id,
+        provider: 'rouzao',
+        provider_order_id: order.order_id,
         shopify_order_number: shopifyOrderNumber,
         shopify_order_id: shopifyOrder.id,
         fulfilled_at: Math.floor(Date.now() / 1000),
