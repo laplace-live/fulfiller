@@ -188,6 +188,30 @@ export async function canFulfillOrder(order: OrderNode): Promise<boolean> {
   return hasOpenFulfillmentOrders
 }
 
+// Check if order has Rouzao items and their fulfillment status
+export function checkRouzaoFulfillmentStatus(order: OrderNode): {
+  hasRouzaoItems: boolean
+  allRouzaoItemsFulfilled: boolean
+} {
+  const rouzaoFulfillmentOrders =
+    order.fulfillmentOrders?.edges?.filter(edge => {
+      const node = edge.node
+      const locationName = node.assignedLocation?.location?.name || ''
+      const locationId = node.assignedLocation?.location?.id || ''
+
+      return (
+        locationName.toLowerCase().includes('rouzao') ||
+        locationId === 'gid://shopify/Location/89848578324' || // Rouzao Warehouse
+        locationId === 'gid://shopify/Location/93230334228' // Rouzao EMS Warehouse
+      )
+    }) || []
+
+  const hasRouzaoItems = rouzaoFulfillmentOrders.length > 0
+  const allRouzaoItemsFulfilled = hasRouzaoItems && rouzaoFulfillmentOrders.every(edge => edge.node.status !== 'OPEN')
+
+  return { hasRouzaoItems, allRouzaoItemsFulfilled }
+}
+
 // Get all locations using GraphQL
 export async function getLocationsGraphQL() {
   try {

@@ -2,7 +2,12 @@ import { Cron } from 'croner'
 
 import { cleanupOldOrders, isOrderFulfilled, storeFulfilledOrder } from './db'
 import { extractShopifyOrderNumber, fetchRouzaoOrderDetail, getRouzaoHeaders, getTrackingInfo } from './rouzao'
-import { canFulfillOrder, createFulfillmentGraphQL, getOrderByNumberGraphQL } from './shopify'
+import {
+  canFulfillOrder,
+  checkRouzaoFulfillmentStatus,
+  createFulfillmentGraphQL,
+  getOrderByNumberGraphQL,
+} from './shopify'
 import type { RouzaoOrderItem, RouzaoOrders } from './types'
 
 // Process a single shipped order using GraphQL
@@ -46,24 +51,16 @@ async function processShippedOrder(order: RouzaoOrderItem): Promise<void> {
       return
     }
 
-    // Check if order can be fulfilled
-    if (!(await canFulfillOrder(shopifyOrder))) {
+    // Check Rouzao fulfillment status
+    const { hasRouzaoItems, allRouzaoItemsFulfilled } = checkRouzaoFulfillmentStatus(shopifyOrder)
+
+    // Case 1: Order has Rouzao items that are already fulfilled
+    if (hasRouzaoItems && allRouzaoItemsFulfilled) {
       console.log(
-        `[${new Date().toISOString()}] Order #${shopifyOrderNumber} cannot be fulfilled or has no open fulfillment orders`
+        `[${new Date().toISOString()}] Order #${shopifyOrderNumber} has Rouzao items but they're already fulfilled`
       )
-      return
-    }
 
-    // Get tracking info
-    const trackingInfo = getTrackingInfo(orderDetail)
-
-    console.log(`[${new Date().toISOString()}] Starting fulfillment for order #${shopifyOrderNumber}`)
-
-    // Create fulfillment using GraphQL
-    const success = await createFulfillmentGraphQL(shopifyOrder, trackingInfo)
-
-    if (success) {
-      // Store in database
+      // Store this state to avoid repeated checks
       storeFulfilledOrder({
         provider: 'rouzao',
         providerOrderId: order.order_id,
@@ -72,7 +69,49 @@ async function processShippedOrder(order: RouzaoOrderItem): Promise<void> {
         fulfilledAt: Math.floor(Date.now() / 1000),
       })
 
+      console.log(`[${new Date().toISOString()}] Stored state for order #${shopifyOrderNumber} to skip future checks`)
+      return
+    }
+
+    // Case 2: Order has no Rouzao items at all
+    if (!hasRouzaoItems) {
+      console.log(`[${new Date().toISOString()}] Order #${shopifyOrderNumber} has no Rouzao location items, skipping`)
+      // Don't store in DB - this order is not relevant to us
+      return
+    }
+
+    // Case 3: Order has Rouzao items that need fulfillment
+    // First check if the entire order can be fulfilled
+    if (!(await canFulfillOrder(shopifyOrder))) {
+      console.log(
+        `[${new Date().toISOString()}] Order #${shopifyOrderNumber} cannot be fulfilled (no open fulfillment orders)`
+      )
+      // Don't store - this might be a temporary state
+      return
+    }
+
+    // Get tracking info and attempt fulfillment
+    const trackingInfo = getTrackingInfo(orderDetail)
+    console.log(`[${new Date().toISOString()}] Starting fulfillment for order #${shopifyOrderNumber}`)
+
+    const success = await createFulfillmentGraphQL(shopifyOrder, trackingInfo)
+
+    if (success) {
       console.log(`[${new Date().toISOString()}] ✅ Successfully fulfilled Shopify order #${shopifyOrderNumber}`)
+
+      // Store successful fulfillment
+      storeFulfilledOrder({
+        provider: 'rouzao',
+        providerOrderId: order.order_id,
+        shopifyOrderNumber: shopifyOrderNumber,
+        shopifyOrderId: shopifyOrder.id,
+        fulfilledAt: Math.floor(Date.now() / 1000),
+      })
+    } else {
+      console.log(
+        `[${new Date().toISOString()}] Failed to fulfill order #${shopifyOrderNumber} (no open Rouzao items found)`
+      )
+      // Don't store - this might be a temporary state or error
     }
   } catch (error) {
     console.error(`[${new Date().toISOString()}] Error processing order ${order.order_id}:`, error)
