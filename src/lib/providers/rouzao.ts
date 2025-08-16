@@ -10,10 +10,7 @@ const ROUZAO_API_BASE = 'https://api.rouzao.com'
  * Default location IDs for Rouzao fulfillment
  * Can be overridden by ROUZAO_LOCATION_IDS env var
  */
-const DEFAULT_LOCATION_IDS = [
-  'gid://shopify/Location/89848578324', // Rouzao Warehouse
-  'gid://shopify/Location/93230334228', // Rouzao EMS Warehouse
-]
+const DEFAULT_LOCATION_IDS: string[] = []
 
 class RouzaoProvider implements Provider {
   id = 'rouzao'
