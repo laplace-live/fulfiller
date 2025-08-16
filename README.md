@@ -1,6 +1,6 @@
 # LAPLACE Fulfiller
 
-Multi-provider automated fulfillment service that syncs third-party warehouse order shipments to Shopify.
+Multi-provider automated fulfillment service that syncs third-party warehouse order shipments to Shopify using GraphQL Admin API.
 
 ## Features
 
@@ -9,6 +9,8 @@ Multi-provider automated fulfillment service that syncs third-party warehouse or
 - **Smart Fulfillment**: Only fulfills orders for specific provider warehouse locations
 - **Duplicate Prevention**: SQLite database tracks fulfilled orders across all providers
 - **Provider-Specific Logic**: Each provider can have custom order extraction and tracking logic
+- **Type-Safe GraphQL**: Uses Shopify's GraphQL Admin API (2025-07) with automatic type generation
+- **Modern Architecture**: Clean code organization with path aliasing (`@/`) and JSDoc documentation
 - **Built-in Providers**:
   - Rouzao (柔造) - Chinese fulfillment provider
 
@@ -63,13 +65,9 @@ ROUZAO_TOKEN=your_rouzao_token_here
 2. Grant the following permissions:
    - Read orders (`read_orders`)
    - Write orders (`write_orders`)
-   - Read fulfillments (`read_fulfillments`)
-   - Write fulfillments (`write_fulfillments`)
    - Read locations (`read_locations`) - optional, but recommended
    - Read merchant-managed fulfillment orders (`read_merchant_managed_fulfillment_orders`)
    - Write merchant-managed fulfillment orders (`write_merchant_managed_fulfillment_orders`)
-   - Read assigned fulfillment orders (`read_assigned_fulfillment_orders`)
-   - Write assigned fulfillment orders (`write_assigned_fulfillment_orders`)
 3. Copy the API credentials
 
 **Important**: The fulfillment order permissions are required for the app to work properly. Without these permissions, you'll receive 403 Forbidden errors when attempting to process orders.
@@ -169,7 +167,7 @@ To see more detailed logs, you can modify the console.log statements in the code
 Run the diagnostic script to check your Shopify API permissions and connections:
 
 ```bash
-bun run src/scripts/diagnose.ts
+bun run diagnose
 ```
 
 This will test:
@@ -183,33 +181,91 @@ This will test:
 
 ## Development
 
-### GraphQL API Version
+### Tech Stack
 
-This project uses the Shopify GraphQL Admin API v9 with the modern `request` method. The GraphQL queries follow the [v9 migration guide](https://raw.githubusercontent.com/Shopify/shopify-app-js/refs/heads/main/packages/apps/shopify-api/docs/migrating-to-v9.md) best practices.
+- **Runtime**: Bun (fast all-in-one JavaScript runtime)
+- **Language**: TypeScript with strict mode
+- **Database**: SQLite with Drizzle ORM
+- **API**: Shopify GraphQL Admin API (2025-07)
+- **Type Generation**: GraphQL Code Generator with Shopify preset
+- **Scheduling**: Croner for cron jobs
+- **Code Quality**: Prettier with import sorting
+
+### GraphQL Type Generation
+
+The project automatically generates TypeScript types from GraphQL queries:
+
+```bash
+# Generate types once
+bun run graphql-codegen
+
+# Watch mode for development (not configured)
+# bun run graphql-codegen:watch
+```
+
+Generated types are stored in `src/types/admin.generated.d.ts` and should not be edited manually.
+
+### Database Management
+
+Using Drizzle ORM for type-safe database operations:
+
+```bash
+# Generate migrations
+bun run db:generate
+
+# Apply migrations
+bun run db:migrate
+
+# Push schema changes directly (development)
+bun run db:push
+
+# Open Drizzle Studio (visual database browser)
+bun run db:studio
+```
+
+### Code Style
+
+The project uses Prettier with automatic import sorting. All code is formatted consistently with JSDoc block comments for better IDE support.
+
+### TypeScript Configuration
+
+The project uses a strict TypeScript configuration with:
+
+- Path aliasing: `@/` maps to `./src/` for clean imports
+- Strict mode enabled for better type safety
+- Bundler module resolution for modern tooling
+- No unused locals/parameters warnings (for flexibility during development)
 
 ### Project Structure
 
 ```
 ├── src/
-│   ├── index.ts              # Main application entry point
-│   ├── db.ts                 # SQLite database operations (Drizzle ORM)
-│   ├── db/
-│   │   └── schema.ts         # Database schema definition
-│   ├── shopify.ts            # Shopify GraphQL API integration
-│   ├── queries.graphql.ts    # GraphQL queries for type generation
-│   ├── providers/
-│   │   ├── types.ts          # Provider interface definitions
-│   │   ├── registry.ts       # Provider registration and management
-│   │   ├── rouzao.ts         # Rouzao provider implementation
-│   │   └── example.ts        # Example provider template
+│   ├── index.ts                    # Main application entry point
+│   ├── lib/
+│   │   ├── db/
+│   │   │   ├── client.ts          # Database client and operations
+│   │   │   └── schema.ts          # Drizzle ORM schema definition
+│   │   ├── providers/
+│   │   │   ├── registry.ts        # Provider registration and management
+│   │   │   ├── rouzao.ts          # Rouzao provider implementation
+│   │   │   └── example.ts         # Example provider template
+│   │   ├── queries.graphql.ts     # GraphQL queries and mutations
+│   │   └── shopify.ts             # Shopify GraphQL API integration
 │   ├── scripts/
-│   │   └── diagnose.ts       # GraphQL diagnostic tool
-│   └── types.ts              # TypeScript type definitions
-├── types/                    # Generated GraphQL types
-├── drizzle/                  # Database migrations
-├── .graphqlrc.ts             # GraphQL code generation config
-├── drizzle.config.ts         # Drizzle ORM configuration
-└── fulfillments.db           # SQLite database (auto-created)
+│   │   └── diagnose.ts            # Diagnostic tool
+│   ├── types/
+│   │   ├── index.ts               # Provider interfaces and types
+│   │   ├── rouzao.ts              # Rouzao-specific types
+│   │   └── admin.generated.d.ts   # Auto-generated GraphQL types
+│   └── utils/                     # Utility functions
+├── drizzle/                        # Database migrations
+├── references/                     # Reference implementations (gitignored)
+├── package.json
+├── tsconfig.json                   # TypeScript config with path aliases
+├── drizzle.config.ts              # Drizzle ORM configuration
+├── .graphqlrc.ts                  # GraphQL code generation config
+├── .prettierrc.mjs                # Code formatting config
+└── fulfillments.db                # SQLite database (auto-created)
 ```
 
 ### Multi-Provider Architecture
@@ -225,6 +281,9 @@ interface Provider {
   id: string // Unique provider identifier
   name: string // Human-readable name
   locationIds: string[] // Shopify location IDs managed by this provider
+
+  // Check if provider has required configuration
+  isConfigured(): boolean
 
   // Check if a location belongs to this provider
   isProviderLocation(locationName: string, locationId: string): boolean
@@ -248,7 +307,7 @@ interface Provider {
 1. **Copy the example template**:
 
    ```bash
-   cp src/providers/example.ts src/providers/myprovider.ts
+   cp src/lib/providers/example.ts src/lib/providers/myprovider.ts
    ```
 
 2. **Implement your provider logic**:
@@ -257,13 +316,13 @@ interface Provider {
    - Configure carrier mappings and tracking URLs
    - Add your Shopify location IDs
 
-3. **Register the provider** in `src/providers/registry.ts`:
+3. **Register the provider** in `src/lib/providers/registry.ts`:
 
    ```typescript
    import { myProvider } from './myprovider'
 
    // In the constructor
-   this.register(myProvider, true)
+   this.register(myProvider)
    ```
 
 4. **Add environment variables** to `.env`:
@@ -329,8 +388,9 @@ Unconfigured providers:
 
 ### Adding Features
 
-- To modify the polling interval, change the cron expression in `index.ts`
-- To process more orders, increase the `page_size` parameter
-- To support additional carriers, update the mapping in `rouzao.ts`
+- To modify the polling interval, change the cron expression in `src/index.ts`
+- To add new GraphQL queries, edit `src/lib/queries.graphql.ts` and run `bun run graphql-codegen`
+- To support additional carriers, update the mapping in your provider implementation
+- All imports use the `@/` path alias (e.g., `import { Provider } from '@/types'`)
 
 This project was created using `bun init` in bun v1.2.20. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.

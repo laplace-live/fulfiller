@@ -21,13 +21,9 @@ const shopify = shopifyApi({
   scopes: [
     'read_orders',
     'write_orders',
-    // 'read_fulfillments',
-    // 'write_fulfillments',
     'read_locations',
     'read_merchant_managed_fulfillment_orders',
     'write_merchant_managed_fulfillment_orders',
-    // 'read_assigned_fulfillment_orders',
-    // 'write_assigned_fulfillment_orders',
   ],
   hostName: process.env['SHOPIFY_APP_URL'] || 'localhost:3000',
   apiVersion: ApiVersion.July25,
