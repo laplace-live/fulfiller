@@ -123,11 +123,8 @@ async function diagnose() {
       console.log('  - Currency:', shop.currencyCode)
       console.log('  - Domain:', shop.primaryDomain.url)
     }
-  } catch (error: any) {
-    console.error('✗ Shop access failed:', error.message)
-    if (error.response) {
-      console.error('Response:', error.response)
-    }
+  } catch (error) {
+    console.error('✗ Shop access failed:', error)
   }
 
   // Test 2: Access scopes
@@ -137,29 +134,12 @@ async function diagnose() {
 
     if (scopeResponse.data) {
       if (scopeResponse.data.appInstallation?.accessScopes) {
-        const scopes = scopeResponse.data.appInstallation.accessScopes.map((s: any) => s.handle).join(', ')
+        const scopes = scopeResponse.data.appInstallation.accessScopes.map(s => s.handle).join(', ')
         console.log('✓ Access scopes:', scopes)
-      } else {
-        // Fallback to REST API for access scopes if GraphQL doesn't work
-        console.log('  GraphQL access scopes not available, trying REST API...')
-        const restResponse = await fetch(
-          `https://${process.env['SHOPIFY_SHOP_DOMAIN']}/admin/oauth/access_scopes.json`,
-          {
-            headers: {
-              'X-Shopify-Access-Token': process.env['SHOPIFY_ACCESS_TOKEN']!,
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-
-        if (restResponse.ok) {
-          const scopes = await restResponse.json()
-          console.log('✓ Access scopes (via REST):', scopes.access_scopes.map((s: any) => s.handle).join(', '))
-        }
       }
     }
-  } catch (error: any) {
-    console.error('✗ Scope check failed:', error.message)
+  } catch (error) {
+    console.error('✗ Scope check failed:', error)
   }
 
   // Test 3: Locations access
@@ -170,16 +150,13 @@ async function diagnose() {
     if (locationsResponse.data) {
       const locations = locationsResponse.data.locations.edges
       console.log('✓ Locations access successful. Found', locations.length, 'locations:')
-      locations.forEach((edge: any) => {
+      locations.forEach(edge => {
         const loc = edge.node
         console.log(`   - ${loc.name} (ID: ${loc.id}) ${loc.isActive ? '' : '[INACTIVE]'}`)
       })
     }
-  } catch (error: any) {
-    console.error('✗ Locations access failed:', error.message)
-    if (error.response) {
-      console.error('Response:', error.response)
-    }
+  } catch (error) {
+    console.error('✗ Locations access failed:', error)
   }
 
   // Test 4: Orders and Fulfillment Orders access
@@ -200,7 +177,7 @@ async function diagnose() {
           console.log('\n4b. Fulfillment orders included in query:')
           console.log(`  ✓ Found ${order.fulfillmentOrders.edges.length} fulfillment orders`)
 
-          order.fulfillmentOrders.edges.forEach((foEdge: any) => {
+          order.fulfillmentOrders.edges.forEach(foEdge => {
             const fo = foEdge.node
             console.log(
               `     - FO ${fo.id.split('/').pop()} (${fo.status}) at ${fo.assignedLocation?.location?.name || 'Unknown location'}`
@@ -211,11 +188,8 @@ async function diagnose() {
         console.log('  - No orders found in the store')
       }
     }
-  } catch (error: any) {
-    console.error('✗ Orders access failed:', error.message)
-    if (error.response) {
-      console.error('Response:', error.response)
-    }
+  } catch (error) {
+    console.error('✗ Orders access failed:', error)
   }
 
   // Test 5: Verify Rouzao locations
@@ -226,7 +200,7 @@ async function diagnose() {
     if (locationsResponse.data) {
       const locations = locationsResponse.data.locations.edges
 
-      const rouzaoLocations = locations.filter((edge: any) => {
+      const rouzaoLocations = locations.filter(edge => {
         const loc = edge.node
         return (
           loc.name.toLowerCase().includes('rouzao') ||
@@ -237,7 +211,7 @@ async function diagnose() {
 
       if (rouzaoLocations.length > 0) {
         console.log('✓ Found Rouzao locations:')
-        rouzaoLocations.forEach((edge: any) => {
+        rouzaoLocations.forEach(edge => {
           const loc = edge.node
           console.log(`   - ${loc.name} (ID: ${loc.id})`)
         })
@@ -245,8 +219,8 @@ async function diagnose() {
         console.log('⚠ No Rouzao locations found. The app will not be able to fulfill orders.')
       }
     }
-  } catch (error: any) {
-    console.error('✗ Failed to check Rouzao locations:', error.message)
+  } catch (error) {
+    console.error('✗ Failed to check Rouzao locations:', error)
   }
 
   // Test 6: Check database statistics
@@ -273,8 +247,8 @@ async function diagnose() {
     } else {
       console.log('✓ No fulfillments in database yet')
     }
-  } catch (error: any) {
-    console.error('✗ Failed to read database:', error.message)
+  } catch (error) {
+    console.error('✗ Failed to read database:', error)
   }
 }
 

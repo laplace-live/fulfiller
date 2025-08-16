@@ -54,7 +54,7 @@ export async function getOrderByNumberGraphQL(orderNumber: string) {
   try {
     const client = await createGraphQLClient()
 
-    const response = await client.request<FindOrderByNameQuery>(FIND_ORDER_BY_NAME, {
+    const response = await client.request(FIND_ORDER_BY_NAME, {
       variables: {
         query: `name:#${orderNumber}`,
       } satisfies FindOrderByNameQueryVariables,
@@ -144,28 +144,28 @@ export async function createFulfillmentGraphQL(
       console.log(`[${new Date().toISOString()}] Creating fulfillment for order ${order.name}`)
 
       // For testing, uncomment the mock
-      console.log(`mock fulfill`, JSON.stringify(fulfillmentInput, null, 2))
-      return true
+      // console.log(`mock fulfill`, JSON.stringify(fulfillmentInput, null, 2))
+      // return true
 
-      // const response = await client.request<FulfillmentCreateMutation>(CREATE_FULFILLMENT, {
-      //   variables: {
-      //     fulfillment: fulfillmentInput,
-      //   } satisfies FulfillmentCreateMutationVariables,
-      // })
+      const response = await client.request(CREATE_FULFILLMENT, {
+        variables: {
+          fulfillment: fulfillmentInput,
+        } satisfies FulfillmentCreateMutationVariables,
+      })
 
-      // const data = response.data
-      // if (!data) {
-      //   console.error(`[${new Date().toISOString()}] Invalid GraphQL response`)
-      //   return false
-      // }
+      const data = response.data
+      if (!data) {
+        console.error(`[${new Date().toISOString()}] Invalid GraphQL response`)
+        return false
+      }
 
-      // const result = data.fulfillmentCreate
-      // if (result?.userErrors && result.userErrors.length > 0) {
-      //   console.error(`[${new Date().toISOString()}] Fulfillment errors:`, result.userErrors)
-      //   return false
-      // }
+      const result = data.fulfillmentCreate
+      if (result?.userErrors && result.userErrors.length > 0) {
+        console.error(`[${new Date().toISOString()}] Fulfillment errors:`, result.userErrors)
+        return false
+      }
 
-      // console.log(`[${new Date().toISOString()}] 📦 Successfully created fulfillment ${result?.fulfillment?.id}`)
+      console.log(`[${new Date().toISOString()}] 📦 Successfully created fulfillment ${result?.fulfillment?.id}`)
     }
 
     return true
@@ -213,7 +213,7 @@ export async function getLocationsGraphQL() {
   try {
     const client = await createGraphQLClient()
 
-    const response = await client.request<GetLocationsQuery>(GET_LOCATIONS, {})
+    const response = await client.request(GET_LOCATIONS, {})
 
     const data = response.data
     if (!data) {

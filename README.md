@@ -46,11 +46,13 @@ DB_FILE_NAME=fulfillments.db
 # Provider API Configurations
 # Rouzao (automatically enabled when ROUZAO_TOKEN is set)
 ROUZAO_TOKEN=your_rouzao_token_here
+ROUZAO_LOCATION_IDS=location_id_1,location_id_2  # Optional: Comma-separated Shopify location IDs
+# If not set, defaults to Rouzao's warehouse location IDs
 
 # HiCustom (automatically enabled when API_KEY and API_SECRET are set)
 HICUSTOM_API_KEY=your_hicustom_api_key
 HICUSTOM_API_SECRET=your_hicustom_api_secret
-HICUSTOM_LOCATION_IDS=location_id_1,location_id_2  # Comma-separated Shopify location IDs
+HICUSTOM_LOCATION_IDS=location_id_1,location_id_2  # Optional: Comma-separated Shopify location IDs
 # HICUSTOM_API_URL=https://api.hicustom.com  # Optional: Override API base URL
 
 # Add more providers as needed
@@ -96,12 +98,16 @@ The HiCustom integration uses their OAuth API with automatic token refresh. See 
 
 Each provider must have corresponding locations in Shopify. The provider will only fulfill orders from its registered locations.
 
-**For Rouzao**: Create a location named "Rouzao" or "柔造"
+**For Rouzao**:
+
+- Set specific location IDs in `ROUZAO_LOCATION_IDS` environment variable
+- Or use the default warehouse locations (automatically configured)
+- Or create locations with names containing "Rouzao" or "柔造"
 
 **For HiCustom**:
 
 - Set specific location IDs in `HICUSTOM_LOCATION_IDS` environment variable
-- Or create locations with names containing "HiCustom", "Hi-Custom", "指纹科技", or "指纹"
+- Or create locations with names containing "HiCustom"
 
 **For other providers**: Check the provider's `locationIds` or location name patterns
 
@@ -418,11 +424,12 @@ For example:
 ```env
 # Rouzao will be enabled (has required token)
 ROUZAO_TOKEN=abc123
+ROUZAO_LOCATION_IDS=gid://shopify/Location/123,gid://shopify/Location/456  # Optional
 
-# HiCustom will be enabled (has required credentials and location IDs)
+# HiCustom will be enabled (has required credentials)
 HICUSTOM_API_KEY=client123
 HICUSTOM_API_SECRET=secret456
-HICUSTOM_LOCATION_IDS=loc_123,loc_456
+HICUSTOM_LOCATION_IDS=gid://shopify/Location/789,gid://shopify/Location/101  # Optional
 
 # Example provider will be disabled (missing required key)
 # EXAMPLE_API_KEY=

@@ -5,7 +5,12 @@ import { getCarrierInfo } from '@/lib/carriers'
 
 // Rouzao-specific configuration
 const ROUZAO_API_BASE = 'https://api.rouzao.com'
-const ROUZAO_LOCATION_IDS = [
+
+/**
+ * Default location IDs for Rouzao fulfillment
+ * Can be overridden by ROUZAO_LOCATION_IDS env var
+ */
+const DEFAULT_LOCATION_IDS = [
   'gid://shopify/Location/89848578324', // Rouzao Warehouse
   'gid://shopify/Location/93230334228', // Rouzao EMS Warehouse
 ]
@@ -13,7 +18,17 @@ const ROUZAO_LOCATION_IDS = [
 class RouzaoProvider implements Provider {
   id = 'rouzao'
   name = 'Rouzao'
-  locationIds = ROUZAO_LOCATION_IDS
+  locationIds: string[] = []
+
+  constructor() {
+    // Load location IDs from environment or use defaults
+    const envLocationIds = process.env['ROUZAO_LOCATION_IDS']
+    if (envLocationIds) {
+      this.locationIds = envLocationIds.split(',').map(id => id.trim())
+    } else {
+      this.locationIds = DEFAULT_LOCATION_IDS
+    }
+  }
 
   isConfigured(): boolean {
     return !!process.env['ROUZAO_TOKEN']
