@@ -1,5 +1,7 @@
 // Example provider implementation for reference
-import type { CarrierInfo, Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
+import type { Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
+
+import { getCarrierInfo } from '@/lib/carriers'
 
 // Define your provider-specific types for type safety
 // Replace with your actual API response types
@@ -34,26 +36,6 @@ const EXAMPLE_LOCATION_IDS = [
   'gid://shopify/Location/123456789', // Example Warehouse 1
   'gid://shopify/Location/987654321', // Example Warehouse 2
 ]
-
-/**
- * Unified carrier mapping for Example provider
- * Maps your provider's carrier codes to carrier info (name + tracking URL)
- */
-const CARRIER_MAPPING: Record<string, CarrierInfo> = {
-  ups: {
-    name: 'UPS',
-    trackingUrlTemplate: 'https://www.ups.com/track?tracknum={tracking_number}',
-  },
-  fedex: {
-    name: 'FedEx',
-    trackingUrlTemplate: 'https://www.fedex.com/fedextrack/?tracknumbers={tracking_number}',
-  },
-  dhl: {
-    name: 'DHL',
-    trackingUrlTemplate: 'https://www.dhl.com/en/express/tracking.html?AWB={tracking_number}',
-  },
-  // Add more carriers as needed
-}
 
 class ExampleProvider implements Provider {
   id = 'example'
@@ -210,16 +192,14 @@ class ExampleProvider implements Provider {
       }
     }
 
-    const carrierInfo = CARRIER_MAPPING[carrierCode]
-    const trackingUrl = carrierInfo?.trackingUrlTemplate
-      ? carrierInfo.trackingUrlTemplate.replace('{tracking_number}', shipping.tracking_number)
-      : undefined
+    // Use centralized tracking details lookup
+    const carrierInfo = getCarrierInfo(carrierCode, shipping.tracking_number)
 
     return {
       trackingNumber: shipping.tracking_number,
       trackingCompany: carrierInfo?.name || shipping.carrier_name || carrierCode,
       trackingCompanyCode: carrierCode,
-      trackingUrl,
+      trackingUrl: carrierInfo?.trackingUrl,
     }
   }
 }
@@ -233,9 +213,10 @@ export const exampleProvider = new ExampleProvider()
 // 3. Update the isConfigured() method to check YOUR required env vars
 // 4. Update the API endpoints and authentication method
 // 5. Adjust the data mapping in fetchShippedOrders, fetchOrderDetail, etc.
-// 6. Update CARRIER_MAPPING with your provider's carrier codes
-//    - Each carrier should have a 'name' and optional 'trackingUrlTemplate'
-//    - Use {tracking_number} as placeholder in the URL template
+// 6. For carrier support:
+//    - The centralized carrier system is already set up in src/lib/carriers.ts
+//    - If your provider uses new carrier codes, add them as aliases in carriers.ts
+//    - Example: if your API returns 'sf-express' for SF Express, add it to the SF Express aliases
 // 7. Add your Shopify location IDs
 // 8. Register your provider in src/lib/providers/registry.ts:
 //    import { myProvider } from './myprovider'

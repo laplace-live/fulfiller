@@ -1,5 +1,7 @@
-import type { CarrierInfo, Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
+import type { Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
 import type { RouzaoOrderDetail, RouzaoOrderItem, RouzaoOrders } from '@/types/rouzao'
+
+import { getCarrierInfo } from '@/lib/carriers'
 
 // Rouzao-specific configuration
 const ROUZAO_API_BASE = 'https://api.rouzao.com'
@@ -7,46 +9,6 @@ const ROUZAO_LOCATION_IDS = [
   'gid://shopify/Location/89848578324', // Rouzao Warehouse
   'gid://shopify/Location/93230334228', // Rouzao EMS Warehouse
 ]
-
-/**
- * Unified carrier mapping for Rouzao
- * Maps Rouzao carrier codes to carrier info (name + tracking URL)
- */
-const CARRIER_MAPPING: Record<string, CarrierInfo> = {
-  postb: {
-    name: 'China Post',
-    trackingUrlTemplate: 'http://yjcx.ems.com.cn/qps/yjcx/{tracking_number}',
-  },
-  sf: {
-    name: 'SF Express',
-    trackingUrlTemplate:
-      'https://www.sf-express.com/cn/en/dynamic_function/waybill/#search/bill-number/{tracking_number}',
-  },
-  zto: {
-    name: 'ZTO Express',
-    trackingUrlTemplate: 'https://www.zto.com/express/expressCheck?txtbill={tracking_number}',
-  },
-  yto: {
-    name: 'YTO Express',
-    trackingUrlTemplate: 'https://www.yto.net.cn/gw/service/tracking?waybillNo={tracking_number}',
-  },
-  sto: {
-    name: 'STO Express',
-    trackingUrlTemplate: 'https://www.sto.cn/web/waybill.html?billcode={tracking_number}',
-  },
-  yunda: {
-    name: 'Yunda Express',
-    trackingUrlTemplate: 'https://www.yundaex.com/cn/track/?nu={tracking_number}',
-  },
-  jd: {
-    name: 'JD Logistics',
-    trackingUrlTemplate: 'https://www.jdl.com/bill/{tracking_number}',
-  },
-  ems: {
-    name: 'EMS',
-    trackingUrlTemplate: 'http://www.ems.com.cn/english-main.jsp', // Generic page, no direct tracking
-  },
-}
 
 class RouzaoProvider implements Provider {
   id = 'rouzao'
@@ -174,16 +136,14 @@ class RouzaoProvider implements Provider {
       return {}
     }
 
-    const carrierInfo = CARRIER_MAPPING[express.express_company]
-    const trackingUrl = carrierInfo?.trackingUrlTemplate
-      ? carrierInfo.trackingUrlTemplate.replace('{tracking_number}', express.express_number)
-      : undefined
+    // Use centralized tracking details lookup
+    const carrierInfo = getCarrierInfo(express.express_company, express.express_number)
 
     return {
       trackingNumber: express.express_number,
       trackingCompany: carrierInfo?.name || express.express_company_name,
       trackingCompanyCode: express.express_company,
-      trackingUrl,
+      trackingUrl: carrierInfo?.trackingUrl,
     }
   }
 }

@@ -268,12 +268,14 @@ The project uses a strict TypeScript configuration with:
 ├── src/
 │   ├── index.ts                    # Main application entry point
 │   ├── lib/
+│   │   ├── carriers.ts            # Centralized carrier configuration
 │   │   ├── db/
 │   │   │   ├── client.ts          # Database client and operations
 │   │   │   └── schema.ts          # Drizzle ORM schema definition
 │   │   ├── providers/
 │   │   │   ├── registry.ts        # Provider registration and management
 │   │   │   ├── rouzao.ts          # Rouzao provider implementation
+│   │   │   ├── hicustom.ts        # HiCustom provider implementation
 │   │   │   └── example.ts         # Example provider template
 │   │   ├── queries.graphql.ts     # GraphQL queries and mutations
 │   │   └── shopify.ts             # Shopify GraphQL API integration
@@ -282,6 +284,7 @@ The project uses a strict TypeScript configuration with:
 │   ├── types/
 │   │   ├── index.ts               # Provider interfaces and types
 │   │   ├── rouzao.ts              # Rouzao-specific types
+│   │   ├── hicustom.ts            # HiCustom-specific types
 │   │   └── admin.generated.d.ts   # Auto-generated GraphQL types
 │   └── utils/                     # Utility functions
 ├── drizzle/                        # Database migrations
@@ -364,9 +367,42 @@ interface Provider {
 
 - **Automatic order tracking**: Each provider's orders are tracked separately
 - **Custom business logic**: Providers can implement their own order number extraction patterns
-- **Carrier mapping**: Map provider-specific carrier codes to Shopify carriers
-- **Tracking URLs**: Generate tracking URLs based on carrier and tracking number
+- **Centralized carrier system**: All providers share a unified carrier configuration
+- **Flexible carrier aliases**: Different providers can use different codes for the same carrier
+- **Automatic tracking URLs**: Generate tracking URLs based on carrier and tracking number
 - **Error isolation**: Errors in one provider don't affect others
+
+#### Centralized Carrier Configuration
+
+The application uses a centralized carrier system (`src/lib/carriers.ts`) that:
+
+1. **Defines carriers once**: Each carrier has a name and tracking URL template
+2. **Supports multiple aliases**: Different providers can use different codes/names for the same carrier
+3. **Provides unified lookup**: All providers use the same functions to get carrier info
+
+Example:
+
+```typescript
+// Rouzao uses 'sf' for SF Express
+// HiCustom uses '顺丰速运' for SF Express
+// Both resolve to the same carrier with tracking URL
+
+const trackingDetails = getTrackingDetails('sf', '123456')
+// or
+const trackingDetails = getTrackingDetails('顺丰速运', '123456')
+
+// Both return:
+// {
+//   carrierName: 'SF Express',
+//   trackingUrl: 'https://www.sf-express.com/.../123456'
+// }
+```
+
+To add support for a new carrier or alias:
+
+1. Edit `src/lib/carriers.ts`
+2. Find the carrier in the `CARRIERS` array
+3. Add your provider's code/name to the `aliases` array
 
 #### Provider Configuration
 

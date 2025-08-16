@@ -1,7 +1,7 @@
 /**
  * HiCustom (指纹科技) provider implementation
  */
-import type { CarrierInfo, Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
+import type { Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
 import type {
   HiCustomOrder,
   HiCustomOrderDetail,
@@ -9,6 +9,8 @@ import type {
   HiCustomOrderListResponse,
   HiCustomTokenResponse,
 } from '@/types/hicustom'
+
+import { getCarrierInfo } from '@/lib/carriers'
 
 /**
  * HiCustom configuration
@@ -20,28 +22,6 @@ const HICUSTOM_API_BASE = process.env['HICUSTOM_API_URL'] || 'https://api.hicust
  * Can be overridden by HICUSTOM_LOCATION_IDS env var
  */
 const DEFAULT_LOCATION_IDS: string[] = []
-
-/**
- * Unified carrier mapping for HiCustom
- * Maps HiCustom carrier names to carrier info (name + tracking URL)
- * Note: HiCustom API returns full Chinese carrier names (e.g., "顺丰速运")
- * This mapping expects exact matches from the API response
- */
-const CARRIER_MAPPING: Record<string, CarrierInfo> = {
-  顺丰速运: {
-    name: 'SF Express',
-    trackingUrlTemplate:
-      'https://www.sf-express.com/cn/en/dynamic_function/waybill/#search/bill-number/{tracking_number}',
-  },
-  圆通速递: {
-    name: 'YTO Express',
-    trackingUrlTemplate: 'https://www.yto.net.cn/gw/service/tracking?waybillNo={tracking_number}',
-  },
-  京东标准快递: {
-    name: 'JD Logistics',
-    trackingUrlTemplate: 'https://www.jdl.com/bill/{tracking_number}',
-  },
-}
 
 /**
  * Token management for OAuth
@@ -347,19 +327,15 @@ class HiCustomProvider implements Provider {
       return {}
     }
 
-    // Get carrier info from mapping
+    // Use centralized tracking details lookup
     const carrierName = logistics.logistics_company_name
-    const carrierInfo = CARRIER_MAPPING[carrierName]
-
-    const trackingUrl = carrierInfo?.trackingUrlTemplate
-      ? carrierInfo.trackingUrlTemplate.replace('{tracking_number}', logistics.shipping_track_number)
-      : undefined
+    const carrierInfo = getCarrierInfo(carrierName, logistics.shipping_track_number)
 
     return {
       trackingNumber: logistics.shipping_track_number,
       trackingCompany: carrierInfo?.name || carrierName,
       trackingCompanyCode: carrierName,
-      trackingUrl,
+      trackingUrl: carrierInfo?.trackingUrl,
     }
   }
 }
