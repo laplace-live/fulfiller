@@ -1,170 +1,180 @@
 import { Cron } from 'croner'
 
-import { cleanupOldOrders, isOrderFulfilled, storeFulfilledOrder } from './db'
-import { extractShopifyOrderNumber, fetchRouzaoOrderDetail, getRouzaoHeaders, getTrackingInfo } from './rouzao'
+import type { Provider, ProviderOrder } from '@/types'
+
+import { cleanupOldOrders, isOrderFulfilled, storeFulfilledOrder } from '@/lib/db/client'
+import { providerRegistry } from '@/lib/providers/registry'
 import {
   canFulfillOrder,
-  checkRouzaoFulfillmentStatus,
+  checkProviderFulfillmentStatus,
   createFulfillmentGraphQL,
   getOrderByNumberGraphQL,
-} from './shopify'
-import type { RouzaoOrderItem, RouzaoOrders } from './types'
+} from '@/lib/shopify'
 
-// Process a single shipped order using GraphQL
-async function processShippedOrder(order: RouzaoOrderItem): Promise<void> {
+// Process a single shipped order from a provider
+async function processShippedOrder(provider: Provider, order: ProviderOrder): Promise<void> {
   try {
     // Check if already processed
-    if (isOrderFulfilled('rouzao', order.order_id)) {
-      console.log(`[${new Date().toISOString()}] Order ${order.order_id} already fulfilled, skipping...`)
+    if (isOrderFulfilled(provider.id, order.orderId)) {
+      console.log(
+        `[${new Date().toISOString()}] [${provider.name}] Order ${order.orderId} already fulfilled, skipping...`
+      )
       return
     }
 
-    // Fetch order details
-    const orderDetail = await fetchRouzaoOrderDetail(order.order_id)
+    // Fetch order details from provider
+    const orderDetail = await provider.fetchOrderDetail(order.orderId)
     if (!orderDetail) {
-      console.error(`[${new Date().toISOString()}] Failed to fetch details for order ${order.order_id}`)
+      console.error(
+        `[${new Date().toISOString()}] [${provider.name}] Failed to fetch details for order ${order.orderId}`
+      )
       return
     }
 
     // Extract Shopify order number
-    const thirdPartyOrderSn = orderDetail.data.third_party_order_sn
-    if (!thirdPartyOrderSn) {
-      console.log(`[${new Date().toISOString()}] No third party order SN for ${order.order_id}`)
-      return
-    }
-
-    const shopifyOrderNumber = extractShopifyOrderNumber(thirdPartyOrderSn)
+    const shopifyOrderNumber = provider.extractShopifyOrderNumber(orderDetail)
     if (!shopifyOrderNumber) {
-      console.log(`[${new Date().toISOString()}] Invalid third party order SN format: ${thirdPartyOrderSn}`)
+      console.log(`[${new Date().toISOString()}] [${provider.name}] No Shopify order number found for ${order.orderId}`)
       return
     }
 
     console.log(
-      `[${new Date().toISOString()}] Processing Shopify order #${shopifyOrderNumber} for Rouzao order ${order.order_id}`
+      `[${new Date().toISOString()}] [${provider.name}] Processing Shopify order #${shopifyOrderNumber} for order ${order.orderId}`
     )
 
     // Get Shopify order using GraphQL
     const shopifyOrder = await getOrderByNumberGraphQL(shopifyOrderNumber)
 
     if (!shopifyOrder) {
-      console.error(`[${new Date().toISOString()}] Shopify order #${shopifyOrderNumber} not found`)
+      console.error(`[${new Date().toISOString()}] [${provider.name}] Shopify order #${shopifyOrderNumber} not found`)
       return
     }
 
-    // Check Rouzao fulfillment status
-    const { hasRouzaoItems, allRouzaoItemsFulfilled } = checkRouzaoFulfillmentStatus(shopifyOrder)
+    // Check provider fulfillment status
+    const { hasProviderItems, allProviderItemsFulfilled } = checkProviderFulfillmentStatus(shopifyOrder, provider)
 
-    // Case 1: Order has Rouzao items that are already fulfilled
-    if (hasRouzaoItems && allRouzaoItemsFulfilled) {
+    // Case 1: Order has provider items that are already fulfilled
+    if (hasProviderItems && allProviderItemsFulfilled) {
       console.log(
-        `[${new Date().toISOString()}] Order #${shopifyOrderNumber} has Rouzao items but they're already fulfilled`
+        `[${new Date().toISOString()}] [${provider.name}] Order #${shopifyOrderNumber} has ${provider.name} items but they're already fulfilled`
       )
 
       // Store this state to avoid repeated checks
       storeFulfilledOrder({
-        provider: 'rouzao',
-        providerOrderId: order.order_id,
+        provider: provider.id,
+        providerOrderId: order.orderId,
         shopifyOrderNumber: shopifyOrderNumber,
         shopifyOrderId: shopifyOrder.id,
         fulfilledAt: Math.floor(Date.now() / 1000),
       })
 
-      console.log(`[${new Date().toISOString()}] Stored state for order #${shopifyOrderNumber} to skip future checks`)
+      console.log(
+        `[${new Date().toISOString()}] [${provider.name}] Stored state for order #${shopifyOrderNumber} to skip future checks`
+      )
       return
     }
 
-    // Case 2: Order has no Rouzao items at all
-    if (!hasRouzaoItems) {
-      console.log(`[${new Date().toISOString()}] Order #${shopifyOrderNumber} has no Rouzao location items, skipping`)
-      // Don't store in DB - this order is not relevant to us
+    // Case 2: Order has no provider items at all
+    if (!hasProviderItems) {
+      console.log(
+        `[${new Date().toISOString()}] [${provider.name}] Order #${shopifyOrderNumber} has no ${provider.name} location items, skipping`
+      )
+      // Don't store in DB - this order is not relevant to this provider
       return
     }
 
-    // Case 3: Order has Rouzao items that need fulfillment
+    // Case 3: Order has provider items that need fulfillment
     // First check if the entire order can be fulfilled
     if (!(await canFulfillOrder(shopifyOrder))) {
       console.log(
-        `[${new Date().toISOString()}] Order #${shopifyOrderNumber} cannot be fulfilled (no open fulfillment orders)`
+        `[${new Date().toISOString()}] [${provider.name}] Order #${shopifyOrderNumber} cannot be fulfilled (no open fulfillment orders)`
       )
       // Don't store - this might be a temporary state
       return
     }
 
     // Get tracking info and attempt fulfillment
-    const trackingInfo = getTrackingInfo(orderDetail)
-    console.log(`[${new Date().toISOString()}] Starting fulfillment for order #${shopifyOrderNumber}`)
+    const trackingInfo = provider.getTrackingInfo(orderDetail)
+    console.log(
+      `[${new Date().toISOString()}] [${provider.name}] Starting fulfillment for order #${shopifyOrderNumber}`
+    )
 
-    const success = await createFulfillmentGraphQL(shopifyOrder, trackingInfo)
+    const success = await createFulfillmentGraphQL(shopifyOrder, provider, trackingInfo)
 
     if (success) {
-      console.log(`[${new Date().toISOString()}] ✅ Successfully fulfilled Shopify order #${shopifyOrderNumber}`)
+      console.log(
+        `[${new Date().toISOString()}] [${provider.name}] ✅ Successfully fulfilled Shopify order #${shopifyOrderNumber}`
+      )
 
       // Store successful fulfillment
       storeFulfilledOrder({
-        provider: 'rouzao',
-        providerOrderId: order.order_id,
+        provider: provider.id,
+        providerOrderId: order.orderId,
         shopifyOrderNumber: shopifyOrderNumber,
         shopifyOrderId: shopifyOrder.id,
         fulfilledAt: Math.floor(Date.now() / 1000),
       })
     } else {
       console.log(
-        `[${new Date().toISOString()}] Failed to fulfill order #${shopifyOrderNumber} (no open Rouzao items found)`
+        `[${new Date().toISOString()}] [${provider.name}] Failed to fulfill order #${shopifyOrderNumber} (no open ${provider.name} items found)`
       )
       // Don't store - this might be a temporary state or error
     }
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error processing order ${order.order_id}:`, error)
+    console.error(`[${new Date().toISOString()}] [${provider.name}] Error processing order ${order.orderId}:`, error)
   }
 }
 
-async function fetchRouzaoOrders() {
-  const API_URL = 'https://api.rouzao.com/talent/order?page=1&page_size=50'
+// Process orders from all enabled providers
+async function processAllProviders() {
+  const providers = providerRegistry.getEnabledProviders()
 
-  try {
-    console.log(`[${new Date().toISOString()}] Fetching orders...`)
+  console.log(`[${new Date().toISOString()}] Processing ${providers.length} enabled provider(s)...`)
 
-    const resp = await fetch(API_URL, {
-      headers: getRouzaoHeaders(),
-    })
+  for (const provider of providers) {
+    try {
+      // Fetch shipped orders from provider
+      const shippedOrders = await provider.fetchShippedOrders()
 
-    if (!resp.ok) {
-      throw new Error(`HTTP error! status: ${resp.status}`)
+      // Process each shipped order
+      for (const order of shippedOrders) {
+        await processShippedOrder(provider, order)
+      }
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] [${provider.name}] Error processing provider:`, error)
     }
+  }
 
-    const json: RouzaoOrders = await resp.json()
-    console.log(`[${new Date().toISOString()}] Fetched ${json.data.data.length} orders`)
-
-    // Process shipped orders
-    const shippedOrders = json.data.data.filter(order => order.order_status === '已发货')
-    console.log(`[${new Date().toISOString()}] Found ${shippedOrders.length} shipped orders`)
-
-    // Process each shipped order
-    for (const order of shippedOrders) {
-      await processShippedOrder(order)
-    }
-
-    // Clean up old records periodically (once per day)
-    // NOTE: disabled for now, will be enabled later
-    // const now = new Date()
-    // if (now.getHours() === 0 && now.getMinutes() < 5) {
-    //   cleanupOldOrders()
-    //   console.log(`[${new Date().toISOString()}] Cleaned up old fulfilled orders`)
-    // }
-
-    return json
-  } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error fetching orders:`, error)
+  // Clean up old records periodically (once per day)
+  const now = new Date()
+  if (now.getHours() === 0 && now.getMinutes() < 5) {
+    cleanupOldOrders()
+    console.log(`[${new Date().toISOString()}] Cleaned up old fulfilled orders`)
   }
 }
 
-// Create cron job to run every 5 minutes
-const job = new Cron('*/5 * * * *', async () => {
-  await fetchRouzaoOrders()
-})
+// Check for --once flag
+const runOnce = process.argv.includes('--once')
 
-console.log('Cron job started - fetching orders every 5 minutes')
-console.log(`Next run scheduled at: ${job.nextRun()}`)
+// Show startup info
+console.log(`LAPLACE fulfiller ${runOnce ? '(one-time run)' : 'started'}`)
+console.log(
+  `Registered providers: ${
+    providerRegistry
+      .getEnabledProviders()
+      .map(p => p.name)
+      .join(', ') || 'None'
+  }`
+)
 
-// Fetch immediately on startup
-fetchRouzaoOrders()
+if (!runOnce) {
+  // Create cron job
+  const job = new Cron('*/5 * * * *', async () => {
+    await processAllProviders()
+  })
+
+  console.log(`Next run scheduled at: ${job.nextRun()}`)
+}
+
+// Process once and exit
+await processAllProviders()

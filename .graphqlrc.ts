@@ -10,7 +10,7 @@ export default {
       apiType: ApiType.Admin,
       apiVersion: '2025-07',
       documents: ['src/**/*.ts'],
-      outputDir: './types',
+      outputDir: './src/types',
     }),
   },
 }

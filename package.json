@@ -4,6 +4,9 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "start": "bun run src/index.ts",
+    "once": "bun run src/index.ts --once",
+    "diagnose": "bun run src/scripts/diagnose.ts",
     "graphql-codegen": "graphql-codegen",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",

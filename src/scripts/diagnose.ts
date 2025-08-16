@@ -2,7 +2,7 @@ import '@shopify/shopify-api/adapters/web-api'
 
 import { ApiVersion, Session, shopifyApi } from '@shopify/shopify-api'
 
-import { getAllFulfilledOrders, getProviderStats } from '../db'
+import { getAllFulfilledOrders, getProviderStats } from '@/lib/db/client'
 
 // Check environment variables
 console.log('=== Environment Check ===')
