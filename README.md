@@ -7,7 +7,7 @@ Multi-provider automated fulfillment service that syncs third-party warehouse or
 - **Multi-Provider Support**: Extensible architecture supporting multiple fulfillment providers
 - **Automated Monitoring**: Checks provider orders every 5 minutes
 - **Smart Fulfillment**: Only fulfills orders for specific provider warehouse locations
-- **Duplicate Prevention**: SQLite database tracks fulfilled orders across all providers
+- **Duplicate Prevention**: Turso database tracks fulfilled orders across all providers
 - **Provider-Specific Logic**: Each provider can have custom order extraction and tracking logic
 - **Type-Safe GraphQL**: Uses Shopify's GraphQL Admin API (2025-07) with automatic type generation
 - **Modern Architecture**: Clean code organization with path aliasing (`@/`) and JSDoc documentation
@@ -33,15 +33,16 @@ bun install
 Create a `.env` file in the project root with the following variables:
 
 ```env
+# Turso Database Configuration (Required)
+TURSO_DATABASE_URL=libsql://your-database-turso.io
+TURSO_AUTH_TOKEN=your-turso-auth-token
+
 # Shopify API Configuration (Required)
 SHOPIFY_API_KEY=your_shopify_api_key_here
 SHOPIFY_API_SECRET=your_shopify_api_secret_here
 SHOPIFY_ACCESS_TOKEN=your_shopify_access_token_here
 SHOPIFY_SHOP_DOMAIN=yourshop.myshopify.com
 SHOPIFY_APP_URL=https://your-app-url.com
-
-# Database Configuration (Optional - defaults to fulfillments.db)
-DB_FILE_NAME=fulfillments.db
 
 # Provider API Configurations
 # Rouzao (automatically enabled when ROUZAO_TOKEN is set)
@@ -59,6 +60,35 @@ HICUSTOM_LOCATION_IDS=location_id_1,location_id_2  # Optional: Comma-separated S
 # PROVIDER3_API_KEY=your_api_key
 # PROVIDER3_API_SECRET=your_secret
 ```
+
+### Setting up Turso Database
+
+1. **Install Turso CLI**:
+   ```bash
+   curl -sSfL https://get.tur.so/install.sh | bash
+   ```
+
+2. **Create a database**:
+   ```bash
+   turso auth signup  # or turso auth login
+   turso db create laplace-fulfiller
+   ```
+
+3. **Get database credentials**:
+   ```bash
+   # Get database URL
+   turso db show laplace-fulfiller --url
+
+   # Create an auth token
+   turso db tokens create laplace-fulfiller
+   ```
+
+4. **Push schema to database**:
+   ```bash
+   bun run db:push
+   ```
+
+**Note**: If migrating from local SQLite, you'll need to export your data from the old database and import it into Turso. The schema remains compatible.
 
 ### Getting Rouzao Token
 
@@ -150,11 +180,11 @@ pm2 start --interpreter ~/.bun/bin/bun src/index.ts --name laplace-fulfiller
 4. **Order Details**: For each shipped order, fetches detailed information including tracking
 5. **Shopify Order Lookup**: Each provider extracts the Shopify order number using its own logic
 6. **Smart Fulfillment**: Only fulfills items assigned to the provider's specific warehouse locations
-7. **Duplicate Prevention**: Records fulfilled orders in SQLite database with provider context
+7. **Duplicate Prevention**: Records fulfilled orders in Turso database with provider context
 
 ## Database
 
-The service uses SQLite with Drizzle ORM (`fulfillments.db`) to track fulfilled orders across all providers:
+The service uses Turso (distributed SQLite) with Drizzle ORM to track fulfilled orders across all providers:
 
 **Schema**:
 
@@ -171,6 +201,9 @@ The service uses SQLite with Drizzle ORM (`fulfillments.db`) to track fulfilled 
 - Indexed by provider and Shopify order number for fast lookups
 - Old records (>30 days) are automatically cleaned up daily at midnight
 - Type-safe queries with Drizzle ORM
+- Global edge deployment with Turso for low-latency access
+- Automatic backups and point-in-time recovery
+- No file size limits unlike local SQLite
 
 ## Logging
 
@@ -217,7 +250,7 @@ This will test:
 
 - **Runtime**: Bun (fast all-in-one JavaScript runtime)
 - **Language**: TypeScript with strict mode
-- **Database**: SQLite with Drizzle ORM
+- **Database**: Turso (distributed SQLite) with Drizzle ORM and @libsql/client
 - **API**: Shopify GraphQL Admin API (2025-07)
 - **Type Generation**: GraphQL Code Generator with Shopify preset
 - **Scheduling**: Croner for cron jobs
@@ -299,8 +332,7 @@ The project uses a strict TypeScript configuration with:
 ├── tsconfig.json                   # TypeScript config with path aliases
 ├── drizzle.config.ts              # Drizzle ORM configuration
 ├── .graphqlrc.ts                  # GraphQL code generation config
-├── .prettierrc.mjs                # Code formatting config
-└── fulfillments.db                # SQLite database (auto-created)
+└── .prettierrc.mjs                # Code formatting config
 ```
 
 ### Multi-Provider Architecture

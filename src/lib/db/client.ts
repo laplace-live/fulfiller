@@ -1,19 +1,22 @@
-import { Database } from 'bun:sqlite'
 import { and, desc, eq, lt, sql } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/bun-sqlite'
+import { drizzle } from 'drizzle-orm/libsql'
 
 import { fulfilledOrders, type FulfilledOrder, type NewFulfilledOrder } from '@/lib/db/schema'
 
-// Initialize SQLite database
-const sqlite = new Database('fulfillments.db', { create: true })
-const db = drizzle(sqlite)
+// Initialize Turso database connection
+const db = drizzle({
+  connection: {
+    url: process.env['TURSO_DATABASE_URL']!,
+    authToken: process.env['TURSO_AUTH_TOKEN']!,
+  },
+})
 
 // Re-export types from schema
 export type { FulfilledOrder, NewFulfilledOrder } from '@/lib/db/schema'
 
 // Check if an order has already been fulfilled
-export function isOrderFulfilled(provider: string, providerOrderId: string): boolean {
-  const result = db
+export async function isOrderFulfilled(provider: string, providerOrderId: string): Promise<boolean> {
+  const result = await db
     .select({ count: sql<number>`1` })
     .from(fulfilledOrders)
     .where(and(eq(fulfilledOrders.provider, provider), eq(fulfilledOrders.providerOrderId, providerOrderId)))
@@ -23,31 +26,31 @@ export function isOrderFulfilled(provider: string, providerOrderId: string): boo
 }
 
 // Store a fulfilled order
-export function storeFulfilledOrder(order: NewFulfilledOrder): void {
-  db.insert(fulfilledOrders).values(order).onConflictDoNothing().run()
+export async function storeFulfilledOrder(order: NewFulfilledOrder): Promise<void> {
+  await db.insert(fulfilledOrders).values(order).onConflictDoNothing().run()
 }
 
 // Get all fulfilled orders (for debugging/monitoring)
-export function getAllFulfilledOrders(provider?: string): FulfilledOrder[] {
+export async function getAllFulfilledOrders(provider?: string): Promise<FulfilledOrder[]> {
   return provider
-    ? db
+    ? await db
         .select()
         .from(fulfilledOrders)
         .where(eq(fulfilledOrders.provider, provider))
         .orderBy(desc(fulfilledOrders.createdAt))
         .all()
-    : db.select().from(fulfilledOrders).orderBy(desc(fulfilledOrders.createdAt)).all()
+    : await db.select().from(fulfilledOrders).orderBy(desc(fulfilledOrders.createdAt)).all()
 }
 
-// Clean up old fulfilled orders (keep last 30 days)
-export function cleanupOldOrders(): void {
-  const thirtyDaysAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 60 * 60
-  db.delete(fulfilledOrders).where(lt(fulfilledOrders.createdAt, thirtyDaysAgo)).run()
+// Clean up old fulfilled orders (keep last 365 days)
+export async function cleanupOldOrders(): Promise<void> {
+  const oneYearAgo = Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60
+  await db.delete(fulfilledOrders).where(lt(fulfilledOrders.createdAt, oneYearAgo)).run()
 }
 
 // Get statistics by provider
-export function getProviderStats(): { provider: string; count: number }[] {
-  const results = db
+export async function getProviderStats(): Promise<{ provider: string; count: number }[]> {
+  const results = await db
     .select({
       provider: fulfilledOrders.provider,
       count: sql<number>`count(*)`,

@@ -15,7 +15,7 @@ import {
 async function processShippedOrder(provider: Provider, order: ProviderOrder): Promise<void> {
   try {
     // Check if already processed
-    if (isOrderFulfilled(provider.id, order.orderId)) {
+    if (await isOrderFulfilled(provider.id, order.orderId)) {
       console.log(
         `[${new Date().toISOString()}] [${provider.name}] Order ${order.orderId} already fulfilled, skipping...`
       )
@@ -60,7 +60,7 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
       )
 
       // Store this state to avoid repeated checks
-      storeFulfilledOrder({
+      await storeFulfilledOrder({
         provider: provider.id,
         providerOrderId: order.orderId,
         shopifyOrderNumber: shopifyOrderNumber,
@@ -107,7 +107,7 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
       )
 
       // Store successful fulfillment
-      storeFulfilledOrder({
+      await storeFulfilledOrder({
         provider: provider.id,
         providerOrderId: order.orderId,
         shopifyOrderNumber: shopifyOrderNumber,
@@ -148,7 +148,7 @@ async function processAllProviders() {
   // Clean up old records periodically (once per day)
   const now = new Date()
   if (now.getHours() === 0 && now.getMinutes() < 5) {
-    cleanupOldOrders()
+    await cleanupOldOrders()
     console.log(`[${new Date().toISOString()}] Cleaned up old fulfilled orders`)
   }
 }

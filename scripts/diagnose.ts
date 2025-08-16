@@ -226,7 +226,7 @@ async function diagnose() {
   // Test 6: Check database statistics
   console.log('\n6. Database Statistics...')
   try {
-    const stats = getProviderStats()
+    const stats = await getProviderStats()
     if (stats.length > 0) {
       console.log('✓ Fulfillment statistics by provider:')
       stats.forEach(stat => {
@@ -234,7 +234,7 @@ async function diagnose() {
       })
 
       // Show recent fulfillments
-      const recentOrders = getAllFulfilledOrders().slice(0, 5)
+      const recentOrders = (await getAllFulfilledOrders()).slice(0, 5)
       if (recentOrders.length > 0) {
         console.log('\n   Recent fulfillments:')
         recentOrders.forEach(order => {

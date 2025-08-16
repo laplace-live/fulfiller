@@ -15,6 +15,7 @@
     "start": "bun run db:migrate && bun run src/index.ts"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.11",
     "@shopify/shopify-api": "^11.14.1",
     "croner": "^9.1.0",
     "drizzle-orm": "^0.44.4"
