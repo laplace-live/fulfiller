@@ -8,10 +8,10 @@
     "once": "bun run src/index.ts --once",
     "diagnose": "bun run scripts/diagnose.ts",
     "graphql-codegen": "graphql-codegen",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
+    "db:generate": "bunx drizzle-kit generate",
+    "db:migrate": "bunx drizzle-kit migrate",
+    "db:push": "bunx drizzle-kit push",
+    "db:studio": "bunx drizzle-kit studio",
     "start": "bun run db:migrate && bun run src/index.ts"
   },
   "dependencies": {
