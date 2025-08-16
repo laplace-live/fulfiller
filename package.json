@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "once": "bun run src/index.ts --once",
-    "diagnose": "bun run src/scripts/diagnose.ts",
+    "diagnose": "bun run scripts/diagnose.ts",
     "graphql-codegen": "graphql-codegen",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
