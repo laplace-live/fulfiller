@@ -7,13 +7,13 @@
         "@libsql/client": "^0.15.11",
         "@shopify/shopify-api": "^11.14.1",
         "croner": "^9.1.0",
+        "drizzle-kit": "^0.31.4",
         "drizzle-orm": "^0.44.4",
       },
       "devDependencies": {
         "@ianvs/prettier-plugin-sort-imports": "^4.6.2",
         "@shopify/api-codegen-preset": "^1.1.9",
         "@types/bun": "^1.2.20",
-        "drizzle-kit": "^0.31.4",
         "prettier": "^3.6.2",
       },
       "peerDependencies": {
