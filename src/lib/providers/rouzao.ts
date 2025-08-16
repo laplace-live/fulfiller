@@ -1,4 +1,4 @@
-import type { Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
+import type { CarrierInfo, Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
 import type { RouzaoOrderDetail, RouzaoOrderItem, RouzaoOrders } from '@/types/rouzao'
 
 // Rouzao-specific configuration
@@ -8,33 +8,49 @@ const ROUZAO_LOCATION_IDS = [
   'gid://shopify/Location/93230334228', // Rouzao EMS Warehouse
 ]
 
-// Carrier URL templates mapping
-const CARRIER_URL_TEMPLATES: Record<string, string> = {
-  postb: 'http://yjcx.ems.com.cn/qps/yjcx/{tracking_number}', // China Post/EMS
-  sf: 'https://www.sf-express.com/cn/en/dynamic_function/waybill/#search/bill-number/{tracking_number}', // SF Express
-  zto: 'https://www.zto.com/express/expressCheck?txtbill={tracking_number}', // ZTO Express
-  yto: 'https://www.yto.net.cn/gw/service/tracking?waybillNo={tracking_number}', // YTO Express
-  sto: 'https://www.sto.cn/web/waybill.html?billcode={tracking_number}', // STO Express
-  yunda: 'https://www.yundaex.com/cn/track/?nu={tracking_number}', // Yunda Express
-  jd: 'https://www.jdl.com/bill/{tracking_number}', // JD Logistics
-  ems: 'http://www.ems.com.cn/english-main.jsp', // EMS (generic page, no direct tracking)
-}
-
-// Map Rouzao express company codes to Shopify carrier names
-const CARRIER_MAPPING: Record<string, string> = {
-  postb: 'China Post',
-  sf: 'SF Express',
-  zto: 'ZTO Express',
-  yto: 'YTO Express',
-  sto: 'STO Express',
-  yunda: 'Yunda Express',
-  jd: 'JD Logistics',
-  ems: 'EMS',
+/**
+ * Unified carrier mapping for Rouzao
+ * Maps Rouzao carrier codes to carrier info (name + tracking URL)
+ */
+const CARRIER_MAPPING: Record<string, CarrierInfo> = {
+  postb: {
+    name: 'China Post',
+    trackingUrlTemplate: 'http://yjcx.ems.com.cn/qps/yjcx/{tracking_number}',
+  },
+  sf: {
+    name: 'SF Express',
+    trackingUrlTemplate:
+      'https://www.sf-express.com/cn/en/dynamic_function/waybill/#search/bill-number/{tracking_number}',
+  },
+  zto: {
+    name: 'ZTO Express',
+    trackingUrlTemplate: 'https://www.zto.com/express/expressCheck?txtbill={tracking_number}',
+  },
+  yto: {
+    name: 'YTO Express',
+    trackingUrlTemplate: 'https://www.yto.net.cn/gw/service/tracking?waybillNo={tracking_number}',
+  },
+  sto: {
+    name: 'STO Express',
+    trackingUrlTemplate: 'https://www.sto.cn/web/waybill.html?billcode={tracking_number}',
+  },
+  yunda: {
+    name: 'Yunda Express',
+    trackingUrlTemplate: 'https://www.yundaex.com/cn/track/?nu={tracking_number}',
+  },
+  jd: {
+    name: 'JD Logistics',
+    trackingUrlTemplate: 'https://www.jdl.com/bill/{tracking_number}',
+  },
+  ems: {
+    name: 'EMS',
+    trackingUrlTemplate: 'http://www.ems.com.cn/english-main.jsp', // Generic page, no direct tracking
+  },
 }
 
 class RouzaoProvider implements Provider {
   id = 'rouzao'
-  name = '柔造'
+  name = 'Rouzao'
   locationIds = ROUZAO_LOCATION_IDS
 
   isConfigured(): boolean {
@@ -134,7 +150,7 @@ class RouzaoProvider implements Provider {
     }
   }
 
-  extractShopifyOrderNumber(orderDetail: ProviderOrderDetail): string | null {
+  extractShopifyOrderNumber(orderDetail: ProviderOrderDetail<RouzaoOrderDetail>): string | null {
     if (!orderDetail.thirdPartyOrderSn) {
       return null
     }
@@ -158,23 +174,17 @@ class RouzaoProvider implements Provider {
       return {}
     }
 
-    const trackingUrl = this.getTrackingUrl(express.express_company, express.express_number)
+    const carrierInfo = CARRIER_MAPPING[express.express_company]
+    const trackingUrl = carrierInfo?.trackingUrlTemplate
+      ? carrierInfo.trackingUrlTemplate.replace('{tracking_number}', express.express_number)
+      : undefined
 
     return {
       trackingNumber: express.express_number,
-      trackingCompany: CARRIER_MAPPING[express.express_company] || express.express_company_name,
+      trackingCompany: carrierInfo?.name || express.express_company_name,
       trackingCompanyCode: express.express_company,
       trackingUrl,
     }
-  }
-
-  private getTrackingUrl(carrierCode: string, trackingNumber: string): string | undefined {
-    const template = CARRIER_URL_TEMPLATES[carrierCode]
-    if (!template) {
-      return undefined
-    }
-
-    return template.replace('{tracking_number}', trackingNumber)
   }
 }
 

@@ -13,6 +13,7 @@ Multi-provider automated fulfillment service that syncs third-party warehouse or
 - **Modern Architecture**: Clean code organization with path aliasing (`@/`) and JSDoc documentation
 - **Built-in Providers**:
   - Rouzao (柔造) - Chinese fulfillment provider
+  - HiCustom (指纹科技) - Chinese POD fulfillment provider
 
 ## Prerequisites
 
@@ -46,9 +47,15 @@ DB_FILE_NAME=fulfillments.db
 # Rouzao (automatically enabled when ROUZAO_TOKEN is set)
 ROUZAO_TOKEN=your_rouzao_token_here
 
+# HiCustom (automatically enabled when API_KEY and API_SECRET are set)
+HICUSTOM_API_KEY=your_hicustom_api_key
+HICUSTOM_API_SECRET=your_hicustom_api_secret
+HICUSTOM_LOCATION_IDS=location_id_1,location_id_2  # Comma-separated Shopify location IDs
+# HICUSTOM_API_URL=https://api.hicustom.com  # Optional: Override API base URL
+
 # Add more providers as needed
-# PROVIDER2_API_KEY=your_api_key
-# PROVIDER2_API_SECRET=your_secret
+# PROVIDER3_API_KEY=your_api_key
+# PROVIDER3_API_SECRET=your_secret
 ```
 
 ### Getting Rouzao Token
@@ -58,6 +65,19 @@ ROUZAO_TOKEN=your_rouzao_token_here
 3. Go to Network tab
 4. Perform any action that calls the API
 5. Look for the `Rouzao-Token` header in the request
+
+### Getting HiCustom Credentials
+
+1. Log in to HiCustom (https://www.hicustom.com)
+2. Navigate to API settings or developer section
+3. Create a new application or API client
+4. Copy the API Key and API Secret
+5. Note your Shopify location IDs that HiCustom will fulfill from
+
+The HiCustom integration uses their OAuth API with automatic token refresh. See their API documentation:
+
+- [获取access_token](http://xiaoyaoji.cn/project/1jPL8Hr5Xf7/1jUEaURCXKK)
+- [刷新access_token](http://xiaoyaoji.cn/project/1jPL8Hr5Xf7/1kErqGf2swS)
 
 ### Setting up Shopify API Access
 
@@ -77,6 +97,12 @@ ROUZAO_TOKEN=your_rouzao_token_here
 Each provider must have corresponding locations in Shopify. The provider will only fulfill orders from its registered locations.
 
 **For Rouzao**: Create a location named "Rouzao" or "柔造"
+
+**For HiCustom**:
+
+- Set specific location IDs in `HICUSTOM_LOCATION_IDS` environment variable
+- Or create locations with names containing "HiCustom", "Hi-Custom", "指纹科技", or "指纹"
+
 **For other providers**: Check the provider's `locationIds` or location name patterns
 
 ## Running
@@ -356,6 +382,11 @@ For example:
 ```env
 # Rouzao will be enabled (has required token)
 ROUZAO_TOKEN=abc123
+
+# HiCustom will be enabled (has required credentials and location IDs)
+HICUSTOM_API_KEY=client123
+HICUSTOM_API_SECRET=secret456
+HICUSTOM_LOCATION_IDS=loc_123,loc_456
 
 # Example provider will be disabled (missing required key)
 # EXAMPLE_API_KEY=

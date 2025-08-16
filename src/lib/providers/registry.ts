@@ -1,5 +1,6 @@
 import type { Provider } from '@/types'
 
+import { hicustomProvider } from '@/lib/providers/hicustom'
 import { rouzaoProvider } from '@/lib/providers/rouzao'
 
 /**
@@ -11,11 +12,12 @@ class ProviderRegistry {
   constructor() {
     /** Register default providers */
     this.register(rouzaoProvider)
+    this.register(hicustomProvider)
 
     /**
      * Add more providers here
      * @example
-     * this.register(provider2)
+     * this.register(provider3)
      */
   }
 

@@ -69,3 +69,13 @@ export interface TrackingInfo {
   /** Tracking URL */
   trackingUrl?: string
 }
+
+/**
+ * Carrier information with name and tracking URL template
+ */
+export interface CarrierInfo {
+  /** Display name for the carrier */
+  name: string
+  /** URL template for tracking, use {tracking_number} as placeholder */
+  trackingUrlTemplate?: string
+}
