@@ -4,14 +4,15 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "start": "bun run src/index.ts",
+    "dev": "bun run src/index.ts",
     "once": "bun run src/index.ts --once",
     "diagnose": "bun run src/scripts/diagnose.ts",
     "graphql-codegen": "graphql-codegen",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "start": "bun run db:migrate && bun run src/index.ts"
   },
   "dependencies": {
     "@shopify/shopify-api": "^11.14.1",

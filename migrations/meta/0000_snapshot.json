@@ -1,8 +1,8 @@
 {
-  "id": "6cd8f5a1-7b1a-4e06-bf67-16fc8bbc24c1",
-  "prevId": "e55256c4-5f9c-4674-b732-31c4033b7f7e",
   "version": "6",
   "dialect": "sqlite",
+  "id": "31e5be63-d853-464b-9c3c-12a5dc5f99cd",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "fulfilled_orders": {
       "name": "fulfilled_orders",
@@ -92,9 +92,9 @@
   "views": {},
   "enums": {},
   "_meta": {
-    "columns": {},
     "schemas": {},
-    "tables": {}
+    "tables": {},
+    "columns": {}
   },
   "internal": {
     "indexes": {}
