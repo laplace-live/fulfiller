@@ -23,32 +23,32 @@ const CARRIERS: CarrierConfig[] = [
   {
     name: 'YTO Express',
     aliases: ['yto', '圆通速递', 'yto express'],
-    trackingUrlTemplate: 'https://www.yto.net.cn/gw/service/tracking?waybillNo={tracking_number}',
+    trackingUrlTemplate: 'https://www.yto.net.cn/ytoExpress/waybill/waybillDetail/?mailNo={tracking_number}',
   },
   {
     name: 'ZTO Express',
     aliases: ['zto', '中通快递', 'zto express'],
-    trackingUrlTemplate: 'https://www.zto.com/express/expressCheck?txtbill={tracking_number}',
+    trackingUrlTemplate: 'https://www.zto.com/express/expressCheck.html',
   },
   {
     name: 'STO Express',
     aliases: ['sto', '申通快递', 'sto express'],
-    trackingUrlTemplate: 'https://www.sto.cn/web/waybill.html?billcode={tracking_number}',
+    trackingUrlTemplate: 'https://www.sto.cn/',
   },
   {
     name: 'Yunda Express',
     aliases: ['yunda', '韵达快递'],
-    trackingUrlTemplate: 'https://www.yundaex.com/cn/track/?nu={tracking_number}',
+    trackingUrlTemplate: 'https://web.yundaex.com/infoInquiry?homeWaybill={tracking_number}',
   },
   {
     name: 'JD Logistics',
     aliases: ['jd', '京东标准快递', '京东', '京东物流', 'jd logistics'],
-    trackingUrlTemplate: 'https://www.jdl.com/bill/{tracking_number}',
+    trackingUrlTemplate: 'https://www.jdl.com/orderSearch/?waybillCodes={tracking_number}',
   },
   {
     name: 'China Post',
     aliases: ['postb', 'ems', '中国邮政', 'china post'],
-    trackingUrlTemplate: 'http://yjcx.ems.com.cn/qps/yjcx/{tracking_number}',
+    trackingUrlTemplate: 'https://www.ems.com.cn/',
   },
   {
     name: 'DHL',
