@@ -12,8 +12,8 @@ Multi-provider automated fulfillment service that syncs third-party warehouse or
 - **Type-Safe GraphQL**: Uses Shopify's GraphQL Admin API (2025-07) with automatic type generation
 - **Modern Architecture**: Clean code organization with path aliasing (`@/`) and JSDoc documentation
 - **Built-in Providers**:
-  - Rouzao (柔造) - Chinese fulfillment provider
-  - HiCustom (指纹科技) - Chinese POD fulfillment provider
+  - Rouzao - Chinese fulfillment provider
+  - HiCustom - Chinese POD fulfillment provider
 
 ## Prerequisites
 
