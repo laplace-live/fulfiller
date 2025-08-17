@@ -64,17 +64,20 @@ HICUSTOM_LOCATION_IDS=location_id_1,location_id_2  # Optional: Comma-separated S
 ### Setting up Turso Database
 
 1. **Install Turso CLI**:
+
    ```bash
    curl -sSfL https://get.tur.so/install.sh | bash
    ```
 
 2. **Create a database**:
+
    ```bash
    turso auth signup  # or turso auth login
    turso db create laplace-fulfiller
    ```
 
 3. **Get database credentials**:
+
    ```bash
    # Get database URL
    turso db show laplace-fulfiller --url
@@ -128,11 +131,12 @@ The HiCustom integration uses their OAuth API with automatic token refresh. See 
 
 Each provider must have corresponding locations in Shopify. The provider will only fulfill orders from its registered locations.
 
+You can run `bun run diagnose` to get the location IDs in your Shopify store.
+
 **For Rouzao**:
 
 - Set specific location IDs in `ROUZAO_LOCATION_IDS` environment variable
-- Or use the default warehouse locations (automatically configured)
-- Or create locations with names containing "Rouzao" or "柔造"
+- Or create locations with names containing "Rouzao"
 
 **For HiCustom**:
 
