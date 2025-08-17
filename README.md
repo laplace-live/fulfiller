@@ -162,19 +162,53 @@ bun run src/index.ts --once
 
 ### Production
 
-```bash
-# Continuous mode with cron
-bun run src/index.ts
+Deploy this application using the officially maintained container image from GitHub Container Registry. This is the only supported deployment method to ensure consistency, security, and compatibility.
 
-# One-time run (useful for testing or manual triggers)
-bun run src/index.ts --once
-```
-
-For production deployment, consider using a process manager like PM2:
+#### Using the Official Image
 
 ```bash
-pm2 start --interpreter ~/.bun/bin/bun src/index.ts --name laplace-fulfiller
+# Pull the latest image
+docker pull ghcr.io/laplace-live/fulfiller:latest
+
+# Run the container
+docker run -d \
+  --name laplace-fulfiller \
+  --restart unless-stopped \
+  --env-file .env \
+  ghcr.io/laplace-live/fulfiller:latest
 ```
+
+#### Docker Compose Example
+
+Create a `docker-compose.yml` file for easier deployment:
+
+```yaml
+services:
+  fulfiller:
+    image: ghcr.io/laplace-live/fulfiller:latest
+    restart: unless-stopped
+    env_file: .env
+```
+
+Then run:
+
+```bash
+docker-compose up -d
+```
+
+#### Container Registry
+
+The official image is publicly available at GitHub Container Registry:
+
+```bash
+# Pull the official image
+docker pull ghcr.io/laplace-live/fulfiller:latest
+
+# View available tags and versions
+# Visit: https://github.com/laplace-live/fulfiller/pkgs/container/fulfiller
+```
+
+The image is automatically built and published with each release, ensuring you always have access to the latest stable version.
 
 ## How It Works
 
@@ -203,7 +237,7 @@ The service uses Turso (distributed SQLite) with Drizzle ORM to track fulfilled 
 
 - Unique constraint on `(provider, provider_order_id)` prevents duplicates
 - Indexed by provider and Shopify order number for fast lookups
-- Old records (>30 days) are automatically cleaned up daily at midnight
+- Old records (>365 days) are automatically cleaned up daily at midnight
 - Type-safe queries with Drizzle ORM
 - Global edge deployment with Turso for low-latency access
 - Automatic backups and point-in-time recovery
@@ -259,6 +293,7 @@ This will test:
 - **Type Generation**: GraphQL Code Generator with Shopify preset
 - **Scheduling**: Croner for cron jobs
 - **Code Quality**: Prettier with import sorting
+- **Containerization**: Production-ready Docker images available at GitHub Container Registry
 
 ### GraphQL Type Generation
 
@@ -291,19 +326,6 @@ bun run db:push
 # Open Drizzle Studio (visual database browser)
 bun run db:studio
 ```
-
-### Code Style
-
-The project uses Prettier with automatic import sorting. All code is formatted consistently with JSDoc block comments for better IDE support.
-
-### TypeScript Configuration
-
-The project uses a strict TypeScript configuration with:
-
-- Path aliasing: `@/` maps to `./src/` for clean imports
-- Strict mode enabled for better type safety
-- Bundler module resolution for modern tooling
-- No unused locals/parameters warnings (for flexibility during development)
 
 ### Project Structure
 
@@ -482,28 +504,12 @@ class MyProvider implements Provider {
 }
 ```
 
-**Benefits**:
-
-- No manual enable/disable flags needed
-- Prevents runtime errors from missing credentials
-- Easy to temporarily disable a provider (just comment out its env vars)
-- Clear logs show which providers are configured
-
-Unconfigured providers:
-
-- Won't fetch orders
-- Won't process shipments
-- Won't consume API quotas
-- Show as "not configured" in startup logs
-
 ### Adding Features
 
 - To modify the polling interval, change the cron expression in `src/index.ts`
 - To add new GraphQL queries, edit `src/lib/queries.graphql.ts` and run `bun run graphql-codegen`
 - To support additional carriers, update the mapping in your provider implementation
 - All imports use the `@/` path alias (e.g., `import { Provider } from '@/types'`)
-
-This project was created using `bun init` in bun v1.2.20. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
 
 ## License
 
