@@ -1,7 +1,10 @@
 import type { Provider } from '@/types'
 
+import { createLogger } from '@/lib/logger'
 import { hicustomProvider } from '@/lib/providers/hicustom'
 import { rouzaoProvider } from '@/lib/providers/rouzao'
+
+const logger = createLogger('provider-registry')
 
 /**
  * Provider registry to manage all fulfillment providers
@@ -28,7 +31,7 @@ class ProviderRegistry {
   register(provider: Provider): void {
     this.providers.push(provider)
     const status = provider.isConfigured() ? 'configured' : 'not configured'
-    console.log(`[${new Date().toISOString()}] Registered provider: ${provider.name} (${status})`)
+    logger.info({ provider: provider.name, status }, `Registered provider`)
   }
 
   /**

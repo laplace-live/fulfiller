@@ -12,7 +12,10 @@ import type {
 } from '@/types/admin.generated'
 import type { FulfillmentInput } from '@/types/admin.types'
 
+import { createLogger } from '@/lib/logger'
 import { CREATE_FULFILLMENT, FIND_ORDER_BY_NAME, GET_LOCATIONS } from '@/lib/queries.graphql'
+
+const logger = createLogger('shopify')
 
 // Initialize Shopify API
 const shopify = shopifyApi({
@@ -62,7 +65,7 @@ export async function getOrderByNumberGraphQL(orderNumber: string) {
 
     const data = response.data
     if (!data) {
-      console.error(`[${new Date().toISOString()}] Invalid GraphQL response`)
+      logger.error(`Invalid GraphQL response`)
       return null
     }
 
@@ -73,7 +76,7 @@ export async function getOrderByNumberGraphQL(orderNumber: string) {
 
     return orders[0]?.node || null
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error fetching order via GraphQL:`, error)
+    logger.error({ error }, `Error fetching order via GraphQL`)
     return null
   }
 }
@@ -101,7 +104,7 @@ export async function createFulfillmentGraphQL(
       }) || []
 
     if (providerFulfillmentOrders.length === 0) {
-      console.log(`[${new Date().toISOString()}] No open ${provider.name} fulfillment orders found`)
+      logger.info({ provider: provider.name }, `No open fulfillment orders found`)
       return false
     }
 
@@ -118,7 +121,7 @@ export async function createFulfillmentGraphQL(
         }))
 
       if (lineItems.length === 0) {
-        console.log(`[${new Date().toISOString()}] No items to fulfill in fulfillment order ${fulfillmentOrder.id}`)
+        logger.info({ fulfillmentOrderId: fulfillmentOrder.id }, `No items to fulfill in fulfillment order`)
         continue
       }
 
@@ -141,10 +144,10 @@ export async function createFulfillmentGraphQL(
         }
       }
 
-      console.log(`[${new Date().toISOString()}] Creating fulfillment for order ${order.name}`)
+      logger.info({ orderName: order.name }, `Creating fulfillment for order`)
 
       // For testing, uncomment the mock
-      // console.log(`mock fulfill`, JSON.stringify(fulfillmentInput, null, 2))
+      // logger.debug({ fulfillmentInput }, `mock fulfill`)
       // return true
 
       const response = await client.request(CREATE_FULFILLMENT, {
@@ -155,22 +158,22 @@ export async function createFulfillmentGraphQL(
 
       const data = response.data
       if (!data) {
-        console.error(`[${new Date().toISOString()}] Invalid GraphQL response`)
+        logger.error(`Invalid GraphQL response`)
         return false
       }
 
       const result = data.fulfillmentCreate
       if (result?.userErrors && result.userErrors.length > 0) {
-        console.error(`[${new Date().toISOString()}] Fulfillment errors:`, result.userErrors)
+        logger.error({ errors: result.userErrors }, `Fulfillment errors`)
         return false
       }
 
-      console.log(`[${new Date().toISOString()}] 📦 Successfully created fulfillment ${result?.fulfillment?.id}`)
+      logger.info({ fulfillmentId: result?.fulfillment?.id }, `📦 Successfully created fulfillment`)
     }
 
     return true
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error creating fulfillment via GraphQL:`, error)
+    logger.error({ error }, `Error creating fulfillment via GraphQL`)
     return false
   }
 }
@@ -217,13 +220,13 @@ export async function getLocationsGraphQL() {
 
     const data = response.data
     if (!data) {
-      console.error(`[${new Date().toISOString()}] Invalid GraphQL response`)
+      logger.error(`Invalid GraphQL response`)
       return []
     }
 
     return data.locations?.edges?.map(edge => edge.node) || []
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] Error fetching locations via GraphQL:`, error)
+    logger.error({ error }, `Error fetching locations via GraphQL`)
     return []
   }
 }

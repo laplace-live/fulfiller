@@ -11,6 +11,9 @@ import type {
 } from '@/types/hicustom'
 
 import { getCarrierInfo } from '@/lib/carriers'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('hicustom')
 
 /**
  * HiCustom configuration
@@ -89,7 +92,7 @@ class HiCustomProvider implements Provider {
 
     const url = `${HICUSTOM_API_BASE}/oauth/token?app_key=${appKey}&app_secret=${appSecret}`
 
-    console.log(`[${new Date().toISOString()}] [${this.name}] Fetching new access token...`)
+    logger.info(`Fetching new access token...`)
 
     const response = await fetch(url, {
       method: 'GET',
@@ -116,9 +119,7 @@ class HiCustomProvider implements Provider {
       refreshExpiresAt: new Date(Date.now() + data.data.refresh_token_expires_in * 1000 - 300000),
     }
 
-    console.log(
-      `[${new Date().toISOString()}] [${this.name}] Access token obtained, expires at ${this.tokenInfo.expiresAt.toISOString()}`
-    )
+    logger.info({ expiresAt: this.tokenInfo.expiresAt }, `Access token obtained`)
 
     return this.tokenInfo.accessToken
   }
@@ -145,7 +146,7 @@ class HiCustomProvider implements Provider {
     })
     const url = `${HICUSTOM_API_BASE}/oauth/refresh-token?${params.toString()}`
 
-    console.log(`[${new Date().toISOString()}] [${this.name}] Refreshing access token...`)
+    logger.info(`Refreshing access token...`)
 
     const response = await fetch(url, {
       method: 'GET',
@@ -155,16 +156,14 @@ class HiCustomProvider implements Provider {
     })
 
     if (!response.ok) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Failed to refresh token, fetching new one...`)
+      logger.error({ status: response.status }, `Failed to refresh token, fetching new one...`)
       return this.fetchNewToken()
     }
 
     const data: HiCustomTokenResponse = await response.json()
 
     if (data.code !== 200) {
-      console.error(
-        `[${new Date().toISOString()}] [${this.name}] Failed to refresh token: ${data.status}, fetching new one...`
-      )
+      logger.error({ status: data.status }, `Failed to refresh token, fetching new one...`)
       return this.fetchNewToken()
     }
 
@@ -176,9 +175,7 @@ class HiCustomProvider implements Provider {
       refreshExpiresAt: new Date(Date.now() + data.data.refresh_token_expires_in * 1000 - 300000),
     }
 
-    console.log(
-      `[${new Date().toISOString()}] [${this.name}] Access token refreshed, expires at ${this.tokenInfo.expiresAt.toISOString()}`
-    )
+    logger.info({ expiresAt: this.tokenInfo.expiresAt }, `Access token refreshed`)
 
     return this.tokenInfo.accessToken
   }
@@ -204,7 +201,7 @@ class HiCustomProvider implements Provider {
    */
   async fetchShippedOrders(): Promise<ProviderOrder[]> {
     try {
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetching orders...`)
+      logger.info(`Fetching orders...`)
 
       const accessToken = await this.getAccessToken()
       const url = `${HICUSTOM_API_BASE}/api/v1/orders?status=9&page_size=50&access_token=${accessToken}`
@@ -226,7 +223,7 @@ class HiCustomProvider implements Provider {
         throw new Error(`API error: ${json.msg}`)
       }
 
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetched ${json.data.data.length} orders`)
+      logger.info({ count: json.data.data.length }, `Fetched orders`)
 
       // Map HiCustom orders to ProviderOrder
       const shippedOrders = json.data.data
@@ -239,10 +236,10 @@ class HiCustomProvider implements Provider {
           })
         )
 
-      console.log(`[${new Date().toISOString()}] [${this.name}] Found ${shippedOrders.length} shipped orders`)
+      logger.info({ count: shippedOrders.length }, `Found shipped orders`)
       return shippedOrders
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Error fetching orders:`, error)
+      logger.error({ error }, `Error fetching orders`)
       return []
     }
   }
@@ -254,7 +251,7 @@ class HiCustomProvider implements Provider {
    */
   async fetchOrderDetail(orderId: string): Promise<ProviderOrderDetail | null> {
     try {
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetching order details for ${orderId}...`)
+      logger.info({ orderId }, `Fetching order details...`)
 
       const accessToken = await this.getAccessToken()
       const url = `${HICUSTOM_API_BASE}/api/v1/order/${orderId}?access_token=${accessToken}`
@@ -285,7 +282,7 @@ class HiCustomProvider implements Provider {
 
       return orderDetail
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Error fetching order detail:`, error)
+      logger.error({ error, orderId }, `Error fetching order detail`)
       return null
     }
   }

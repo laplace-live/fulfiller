@@ -3,6 +3,7 @@ import { Cron } from 'croner'
 import type { Provider, ProviderOrder } from '@/types'
 
 import { cleanupOldOrders, isOrderFulfilled, storeFulfilledOrder } from '@/lib/db/client'
+import { createLogger } from '@/lib/logger'
 import { providerRegistry } from '@/lib/providers/registry'
 import {
   canFulfillOrder,
@@ -11,42 +12,38 @@ import {
   getOrderByNumberGraphQL,
 } from '@/lib/shopify'
 
+const logger = createLogger('main')
+
 // Process a single shipped order from a provider
 async function processShippedOrder(provider: Provider, order: ProviderOrder): Promise<void> {
   try {
     // Check if already processed
     if (await isOrderFulfilled(provider.id, order.orderId)) {
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] Order ${order.orderId} already fulfilled, skipping...`
-      )
+      logger.info({ provider: provider.name, orderId: order.orderId }, `Order already fulfilled, skipping...`)
       return
     }
 
     // Fetch order details from provider
     const orderDetail = await provider.fetchOrderDetail(order.orderId)
     if (!orderDetail) {
-      console.error(
-        `[${new Date().toISOString()}] [${provider.name}] Failed to fetch details for order ${order.orderId}`
-      )
+      logger.error({ provider: provider.name, orderId: order.orderId }, `Failed to fetch details for order`)
       return
     }
 
     // Extract Shopify order number
     const shopifyOrderNumber = provider.extractShopifyOrderNumber(orderDetail)
     if (!shopifyOrderNumber) {
-      console.log(`[${new Date().toISOString()}] [${provider.name}] No Shopify order number found for ${order.orderId}`)
+      logger.info({ provider: provider.name, orderId: order.orderId }, `No Shopify order number found`)
       return
     }
 
-    console.log(
-      `[${new Date().toISOString()}] [${provider.name}] Processing Shopify order #${shopifyOrderNumber} for order ${order.orderId}`
-    )
+    logger.info({ provider: provider.name, orderId: order.orderId, shopifyOrderNumber }, `Processing Shopify order`)
 
     // Get Shopify order using GraphQL
     const shopifyOrder = await getOrderByNumberGraphQL(shopifyOrderNumber)
 
     if (!shopifyOrder) {
-      console.error(`[${new Date().toISOString()}] [${provider.name}] Shopify order #${shopifyOrderNumber} not found`)
+      logger.error({ provider: provider.name, shopifyOrderNumber }, `Shopify order not found`)
       return
     }
 
@@ -55,8 +52,9 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
 
     // Case 1: Order has provider items that are already fulfilled
     if (hasProviderItems && allProviderItemsFulfilled) {
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] Order #${shopifyOrderNumber} has ${provider.name} items but they're already fulfilled`
+      logger.info(
+        { provider: provider.name, shopifyOrderNumber },
+        `Order has ${provider.name} items but they're already fulfilled`
       )
 
       // Store this state to avoid repeated checks
@@ -68,16 +66,15 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
         fulfilledAt: Math.floor(Date.now() / 1000),
       })
 
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] Stored state for order #${shopifyOrderNumber} to skip future checks`
-      )
+      logger.info({ provider: provider.name, shopifyOrderNumber }, `Stored state for order to skip future checks`)
       return
     }
 
     // Case 2: Order has no provider items at all
     if (!hasProviderItems) {
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] Order #${shopifyOrderNumber} has no ${provider.name} location items, skipping`
+      logger.info(
+        { provider: provider.name, shopifyOrderNumber },
+        `Order has no ${provider.name} location items, skipping`
       )
       // Don't store in DB - this order is not relevant to this provider
       return
@@ -86,8 +83,9 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
     // Case 3: Order has provider items that need fulfillment
     // First check if the entire order can be fulfilled
     if (!(await canFulfillOrder(shopifyOrder))) {
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] Order #${shopifyOrderNumber} cannot be fulfilled (no open fulfillment orders)`
+      logger.info(
+        { provider: provider.name, shopifyOrderNumber },
+        `Order cannot be fulfilled (no open fulfillment orders)`
       )
       // Don't store - this might be a temporary state
       return
@@ -95,16 +93,12 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
 
     // Get tracking info and attempt fulfillment
     const trackingInfo = provider.getTrackingInfo(orderDetail)
-    console.log(
-      `[${new Date().toISOString()}] [${provider.name}] Starting fulfillment for order #${shopifyOrderNumber}`
-    )
+    logger.info({ provider: provider.name, shopifyOrderNumber }, `Starting fulfillment for order`)
 
     const success = await createFulfillmentGraphQL(shopifyOrder, provider, trackingInfo)
 
     if (success) {
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] ✅ Successfully fulfilled Shopify order #${shopifyOrderNumber}`
-      )
+      logger.info({ provider: provider.name, shopifyOrderNumber }, `✅ Successfully fulfilled Shopify order`)
 
       // Store successful fulfillment
       await storeFulfilledOrder({
@@ -115,13 +109,14 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
         fulfilledAt: Math.floor(Date.now() / 1000),
       })
     } else {
-      console.log(
-        `[${new Date().toISOString()}] [${provider.name}] Failed to fulfill order #${shopifyOrderNumber} (no open ${provider.name} items found)`
+      logger.info(
+        { provider: provider.name, shopifyOrderNumber },
+        `Failed to fulfill order (no open ${provider.name} items found)`
       )
       // Don't store - this might be a temporary state or error
     }
   } catch (error) {
-    console.error(`[${new Date().toISOString()}] [${provider.name}] Error processing order ${order.orderId}:`, error)
+    logger.error({ provider: provider.name, orderId: order.orderId, error }, `Error processing order`)
   }
 }
 
@@ -129,7 +124,7 @@ async function processShippedOrder(provider: Provider, order: ProviderOrder): Pr
 async function processAllProviders() {
   const providers = providerRegistry.getEnabledProviders()
 
-  console.log(`[${new Date().toISOString()}] Processing ${providers.length} enabled provider(s)...`)
+  logger.info({ count: providers.length }, `Processing enabled provider(s)...`)
 
   for (const provider of providers) {
     try {
@@ -141,7 +136,7 @@ async function processAllProviders() {
         await processShippedOrder(provider, order)
       }
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${provider.name}] Error processing provider:`, error)
+      logger.error({ provider: provider.name, error }, `Error processing provider`)
     }
   }
 
@@ -149,7 +144,7 @@ async function processAllProviders() {
   const now = new Date()
   if (now.getHours() === 0 && now.getMinutes() < 5) {
     await cleanupOldOrders()
-    console.log(`[${new Date().toISOString()}] Cleaned up old fulfilled orders`)
+    logger.info(`Cleaned up old fulfilled orders`)
   }
 }
 
@@ -157,15 +152,8 @@ async function processAllProviders() {
 const runOnce = process.argv.includes('--once')
 
 // Show startup info
-console.log(`LAPLACE fulfiller ${runOnce ? '(one-time run)' : 'started'}`)
-console.log(
-  `Registered providers: ${
-    providerRegistry
-      .getEnabledProviders()
-      .map(p => p.name)
-      .join(', ') || 'None'
-  }`
-)
+logger.info(`LAPLACE fulfiller ${runOnce ? '(one-time run)' : 'started'}`)
+logger.info({ providers: providerRegistry.getEnabledProviders().map(p => p.name) }, `Registered providers`)
 
 if (!runOnce) {
   // Create cron job
@@ -173,7 +161,7 @@ if (!runOnce) {
     await processAllProviders()
   })
 
-  console.log(`Next run scheduled at: ${job.nextRun()}`)
+  logger.info({ nextRun: job.nextRun() }, `Next run scheduled`)
 }
 
 // Process once and exit

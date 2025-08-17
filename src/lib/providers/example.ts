@@ -2,6 +2,9 @@
 import type { Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from '@/types'
 
 import { getCarrierInfo } from '@/lib/carriers'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('example')
 
 // Define your provider-specific types for type safety
 // Replace with your actual API response types
@@ -70,7 +73,7 @@ class ExampleProvider implements Provider {
     const API_URL = `${EXAMPLE_API_BASE}/orders?status=shipped&limit=50`
 
     try {
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetching orders...`)
+      logger.info(`Fetching orders...`)
 
       const resp = await fetch(API_URL, {
         headers: this.getHeaders(),
@@ -82,7 +85,7 @@ class ExampleProvider implements Provider {
 
       // Type your API response properly
       const json: { orders: ExampleApiOrder[] } = await resp.json()
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetched ${json.orders.length} orders`)
+      logger.info({ count: json.orders.length }, `Fetched orders`)
 
       // Map your provider's order structure to ProviderOrder
       // This example assumes json.orders is an array of orders
@@ -96,10 +99,10 @@ class ExampleProvider implements Provider {
           })
         )
 
-      console.log(`[${new Date().toISOString()}] [${this.name}] Found ${shippedOrders.length} shipped orders`)
+      logger.info({ count: shippedOrders.length }, `Found shipped orders`)
       return shippedOrders
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Error fetching orders:`, error)
+      logger.error({ error }, `Error fetching orders`)
       return []
     }
   }
@@ -108,7 +111,7 @@ class ExampleProvider implements Provider {
     const API_URL = `${EXAMPLE_API_BASE}/orders/${orderId}`
 
     try {
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetching order details for ${orderId}...`)
+      logger.info({ orderId }, `Fetching order details...`)
 
       const resp = await fetch(API_URL, {
         headers: this.getHeaders(),
@@ -130,7 +133,7 @@ class ExampleProvider implements Provider {
       }
       return orderDetail
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Error fetching order detail:`, error)
+      logger.error({ error, orderId }, `Error fetching order detail`)
       return null
     }
   }

@@ -2,6 +2,9 @@ import type { Provider, ProviderOrder, ProviderOrderDetail, TrackingInfo } from 
 import type { RouzaoOrderDetail, RouzaoOrderItem, RouzaoOrders } from '@/types/rouzao'
 
 import { getCarrierInfo } from '@/lib/carriers'
+import { createLogger } from '@/lib/logger'
+
+const logger = createLogger('rouzao')
 
 // Rouzao-specific configuration
 const ROUZAO_API_BASE = 'https://api.rouzao.com'
@@ -59,7 +62,7 @@ class RouzaoProvider implements Provider {
     const API_URL = `${ROUZAO_API_BASE}/talent/order?page=1&page_size=50`
 
     try {
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetching orders...`)
+      logger.info(`Fetching orders...`)
 
       const resp = await fetch(API_URL, {
         headers: this.getHeaders(),
@@ -70,7 +73,7 @@ class RouzaoProvider implements Provider {
       }
 
       const json: RouzaoOrders = await resp.json()
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetched ${json.data.data.length} orders`)
+      logger.info({ count: json.data.data.length }, `Fetched orders`)
 
       // Filter and map shipped orders
       const shippedOrders = json.data.data
@@ -83,10 +86,10 @@ class RouzaoProvider implements Provider {
           })
         )
 
-      console.log(`[${new Date().toISOString()}] [${this.name}] Found ${shippedOrders.length} shipped orders`)
+      logger.info({ count: shippedOrders.length }, `Found shipped orders`)
       return shippedOrders
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Error fetching orders:`, error)
+      logger.error({ error }, `Error fetching orders`)
       return []
     }
   }
@@ -95,7 +98,7 @@ class RouzaoProvider implements Provider {
     const API_URL = `${ROUZAO_API_BASE}/talent/order/detail?id=${orderId}`
 
     try {
-      console.log(`[${new Date().toISOString()}] [${this.name}] Fetching order details for ${orderId}...`)
+      logger.info({ orderId }, `Fetching order details...`)
 
       const resp = await fetch(API_URL, {
         headers: this.getHeaders(),
@@ -108,7 +111,7 @@ class RouzaoProvider implements Provider {
       const json: RouzaoOrderDetail = await resp.json()
 
       if (json.code !== 0) {
-        console.error(`[${new Date().toISOString()}] [${this.name}] API returned error code: ${json.code}`)
+        logger.error({ code: json.code }, `API returned error code`)
         return null
       }
 
@@ -119,7 +122,7 @@ class RouzaoProvider implements Provider {
       }
       return orderDetail
     } catch (error) {
-      console.error(`[${new Date().toISOString()}] [${this.name}] Error fetching order detail:`, error)
+      logger.error({ error, orderId }, `Error fetching order detail`)
       return null
     }
   }
