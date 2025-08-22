@@ -4,7 +4,7 @@ import pino from 'pino'
 // Note: pino-pretty transport has issues with Bun due to thread-stream
 // For Bun compatibility, we use standard output and pipe to pino-pretty if needed
 const logger = pino({
-  level: process.env['LOG_LEVEL'] || 'info',
+  level: process.env.LOG_LEVEL || 'info',
   timestamp: pino.stdTimeFunctions.isoTime,
   formatters: {
     level: label => {

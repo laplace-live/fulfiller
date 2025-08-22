@@ -18,7 +18,7 @@ const logger = createLogger('hicustom')
 /**
  * HiCustom configuration
  */
-const HICUSTOM_API_BASE = process.env['HICUSTOM_API_URL'] || 'https://api.hicustom.com'
+const HICUSTOM_API_BASE = process.env.HICUSTOM_API_URL || 'https://api.hicustom.com'
 
 /**
  * Location IDs for HiCustom fulfillment
@@ -44,7 +44,7 @@ class HiCustomProvider implements Provider {
 
   constructor() {
     // Load location IDs from environment or use defaults
-    const envLocationIds = process.env['HICUSTOM_LOCATION_IDS']
+    const envLocationIds = process.env.HICUSTOM_LOCATION_IDS
     if (envLocationIds) {
       this.locationIds = envLocationIds.split(',').map(id => id.trim())
     } else {
@@ -56,7 +56,7 @@ class HiCustomProvider implements Provider {
    * Check if provider has required configuration
    */
   isConfigured(): boolean {
-    return !!(process.env['HICUSTOM_API_KEY'] && process.env['HICUSTOM_API_SECRET'])
+    return !!(process.env.HICUSTOM_API_KEY && process.env.HICUSTOM_API_SECRET)
   }
 
   /**
@@ -83,8 +83,8 @@ class HiCustomProvider implements Provider {
    * @link http://xiaoyaoji.cn/project/1jPL8Hr5Xf7/1jUEaURCXKK
    */
   private async fetchNewToken(): Promise<string> {
-    const appKey = process.env['HICUSTOM_API_KEY']
-    const appSecret = process.env['HICUSTOM_API_SECRET']
+    const appKey = process.env.HICUSTOM_API_KEY
+    const appSecret = process.env.HICUSTOM_API_SECRET
 
     if (!appKey || !appSecret) {
       throw new Error('HICUSTOM_API_KEY and HICUSTOM_API_SECRET are required')
@@ -134,7 +134,7 @@ class HiCustomProvider implements Provider {
       return this.fetchNewToken()
     }
 
-    const appKey = process.env['HICUSTOM_API_KEY']
+    const appKey = process.env.HICUSTOM_API_KEY
     if (!appKey) {
       throw new Error('HICUSTOM_API_KEY is required')
     }

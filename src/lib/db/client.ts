@@ -1,15 +1,17 @@
 import { and, desc, eq, lt, sql } from 'drizzle-orm'
 import { drizzle } from 'drizzle-orm/libsql'
 
-import { fulfilledOrders, type FulfilledOrder, type NewFulfilledOrder } from '@/lib/db/schema'
+import { type FulfilledOrder, fulfilledOrders, type NewFulfilledOrder } from '@/lib/db/schema'
+
+const url = process.env.TURSO_DATABASE_URL
+const authToken = process.env.TURSO_AUTH_TOKEN
+
+if (!url || !authToken) {
+  throw new Error('TURSO_DATABASE_URL and TURSO_AUTH_TOKEN must be set')
+}
 
 // Initialize Turso database connection
-const db = drizzle({
-  connection: {
-    url: process.env['TURSO_DATABASE_URL']!,
-    authToken: process.env['TURSO_AUTH_TOKEN']!,
-  },
-})
+const db = drizzle({ connection: { url, authToken } })
 
 // Re-export types from schema
 export type { FulfilledOrder, NewFulfilledOrder } from '@/lib/db/schema'

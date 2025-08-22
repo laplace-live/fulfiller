@@ -9,16 +9,16 @@ const logger = createLogger('diagnose')
 
 // Check environment variables
 logger.info('=== Environment Check ===')
-logger.info(`SHOPIFY_API_KEY: ${process.env['SHOPIFY_API_KEY'] ? '✓ Set' : '✗ Missing'}`)
-logger.info(`SHOPIFY_API_SECRET: ${process.env['SHOPIFY_API_SECRET'] ? '✓ Set' : '✗ Missing'}`)
-logger.info(`SHOPIFY_ACCESS_TOKEN: ${process.env['SHOPIFY_ACCESS_TOKEN'] ? '✓ Set' : '✗ Missing'}`)
-logger.info(`SHOPIFY_SHOP_DOMAIN: ${process.env['SHOPIFY_SHOP_DOMAIN'] || 'Missing'}`)
+logger.info(`SHOPIFY_API_KEY: ${process.env.SHOPIFY_API_KEY ? '✓ Set' : '✗ Missing'}`)
+logger.info(`SHOPIFY_API_SECRET: ${process.env.SHOPIFY_API_SECRET ? '✓ Set' : '✗ Missing'}`)
+logger.info(`SHOPIFY_ACCESS_TOKEN: ${process.env.SHOPIFY_ACCESS_TOKEN ? '✓ Set' : '✗ Missing'}`)
+logger.info(`SHOPIFY_SHOP_DOMAIN: ${process.env.SHOPIFY_SHOP_DOMAIN || 'Missing'}`)
 logger.info('')
 
 // Initialize Shopify API
 const shopify = shopifyApi({
-  apiKey: process.env['SHOPIFY_API_KEY']!,
-  apiSecretKey: process.env['SHOPIFY_API_SECRET']!,
+  apiKey: process.env.SHOPIFY_API_KEY,
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || '',
   scopes: [
     'read_orders',
     'write_orders',
@@ -26,7 +26,7 @@ const shopify = shopifyApi({
     'read_merchant_managed_fulfillment_orders',
     'write_merchant_managed_fulfillment_orders',
   ],
-  hostName: process.env['SHOPIFY_APP_URL'] || 'localhost:3000',
+  hostName: process.env.SHOPIFY_APP_URL || 'localhost:3000',
   apiVersion: ApiVersion.July25,
   isEmbeddedApp: false,
 })
@@ -34,10 +34,10 @@ const shopify = shopifyApi({
 // Create a session
 const session = new Session({
   id: 'offline',
-  shop: process.env['SHOPIFY_SHOP_DOMAIN']!,
+  shop: process.env.SHOPIFY_SHOP_DOMAIN || '',
   state: 'active',
   isOnline: false,
-  accessToken: process.env['SHOPIFY_ACCESS_TOKEN']!,
+  accessToken: process.env.SHOPIFY_ACCESS_TOKEN || '',
 })
 
 // GraphQL queries

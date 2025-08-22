@@ -22,7 +22,7 @@ class RouzaoProvider implements Provider {
 
   constructor() {
     // Load location IDs from environment or use defaults
-    const envLocationIds = process.env['ROUZAO_LOCATION_IDS']
+    const envLocationIds = process.env.ROUZAO_LOCATION_IDS
     if (envLocationIds) {
       this.locationIds = envLocationIds.split(',').map(id => id.trim())
     } else {
@@ -31,11 +31,11 @@ class RouzaoProvider implements Provider {
   }
 
   isConfigured(): boolean {
-    return !!process.env['ROUZAO_TOKEN']
+    return !!process.env.ROUZAO_TOKEN
   }
 
   private getHeaders(): RequestInit['headers'] {
-    const rouzaoToken = process.env['ROUZAO_TOKEN']
+    const rouzaoToken = process.env.ROUZAO_TOKEN
 
     if (!rouzaoToken) {
       throw new Error('ROUZAO_TOKEN is not set')
@@ -46,9 +46,9 @@ class RouzaoProvider implements Provider {
       'Rouzao-Web-Ver': '1',
       'User-Agent':
         'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
-      'Referer': 'https://www.rouzao.com/',
-      'Origin': 'https://www.rouzao.com',
-      'Accept': 'application/json, text/plain, */*',
+      Referer: 'https://www.rouzao.com/',
+      Origin: 'https://www.rouzao.com',
+      Accept: 'application/json, text/plain, */*',
       'Accept-Language': 'en-US,en;q=0.9',
       'Cache-Control': 'no-cache',
     }

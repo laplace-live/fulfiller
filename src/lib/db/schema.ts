@@ -11,9 +11,7 @@ export const fulfilledOrders = sqliteTable(
     shopifyOrderNumber: text('shopify_order_number').notNull(),
     shopifyOrderId: text('shopify_order_id').notNull(),
     fulfilledAt: integer('fulfilled_at').notNull(),
-    createdAt: integer('created_at')
-      .notNull()
-      .default(sql`(strftime('%s', 'now'))`),
+    createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now'))`),
   },
   table => [
     // Indexes

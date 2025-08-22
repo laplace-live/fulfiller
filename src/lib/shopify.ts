@@ -6,9 +6,7 @@ import type { Provider, TrackingInfo } from '@/types'
 import type {
   FindOrderByNameQuery,
   FindOrderByNameQueryVariables,
-  FulfillmentCreateMutation,
   FulfillmentCreateMutationVariables,
-  GetLocationsQuery,
 } from '@/types/admin.generated'
 import type { FulfillmentInput } from '@/types/admin.types'
 
@@ -19,8 +17,8 @@ const logger = createLogger('shopify')
 
 // Initialize Shopify API
 const shopify = shopifyApi({
-  apiKey: process.env['SHOPIFY_API_KEY']!,
-  apiSecretKey: process.env['SHOPIFY_API_SECRET']!,
+  apiKey: process.env.SHOPIFY_API_KEY || '',
+  apiSecretKey: process.env.SHOPIFY_API_SECRET || '',
   scopes: [
     'read_orders',
     'write_orders',
@@ -28,7 +26,7 @@ const shopify = shopifyApi({
     'read_merchant_managed_fulfillment_orders',
     'write_merchant_managed_fulfillment_orders',
   ],
-  hostName: process.env['SHOPIFY_APP_URL'] || 'localhost:3000',
+  hostName: process.env.SHOPIFY_APP_URL || 'localhost:3000',
   apiVersion: ApiVersion.July25,
   isEmbeddedApp: false,
 })
@@ -37,10 +35,10 @@ const shopify = shopifyApi({
 function getSession(): Session {
   return new Session({
     id: 'offline',
-    shop: process.env['SHOPIFY_SHOP_DOMAIN']!,
+    shop: process.env.SHOPIFY_SHOP_DOMAIN || '',
     state: 'active',
     isOnline: false,
-    accessToken: process.env['SHOPIFY_ACCESS_TOKEN']!,
+    accessToken: process.env.SHOPIFY_ACCESS_TOKEN || '',
   })
 }
 

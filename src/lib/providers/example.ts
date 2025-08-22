@@ -46,20 +46,20 @@ class ExampleProvider implements Provider {
   locationIds = EXAMPLE_LOCATION_IDS
 
   isConfigured(): boolean {
-    return !!process.env['EXAMPLE_API_KEY']
+    return !!process.env.EXAMPLE_API_KEY
   }
 
   private getHeaders(): RequestInit['headers'] {
-    const apiKey = process.env['EXAMPLE_API_KEY']
+    const apiKey = process.env.EXAMPLE_API_KEY
 
     if (!apiKey) {
       throw new Error('EXAMPLE_API_KEY is not set')
     }
 
     return {
-      'Authorization': `Bearer ${apiKey}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     }
   }
 

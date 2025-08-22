@@ -345,7 +345,7 @@ export interface RouzaoOrderItem {
             isAddPrivateWework: boolean
           }
           innerCount: number
-          share_info: any[]
+          share_info: unknown[]
           yingePrice: number
           tieredPrice: {
             count: number
@@ -472,7 +472,7 @@ export interface RouzaoOrderItem {
         pkgSkuCount: number
         warehouseId: number
         cp30FeeTotal: number
-        selectTicket: any[]
+        selectTicket: unknown[]
         /**
          * Selected shipping company code
          * @example 'postb' | 'sf' | 'zto'
@@ -514,7 +514,7 @@ export interface RouzaoOrderItem {
          * @example '10天发货' | '11天发货' | '15天发货'
          */
         estimatedShippingAtText: string
-        packageShippingDiscount: any[]
+        packageShippingDiscount: unknown[]
         freeShippingProductAmount: number
         urgentEstimatedShippingDays: number
       }
@@ -602,7 +602,7 @@ export interface RouzaoOrderItem {
      * @example 15
      */
     status: number
-    extend: any[]
+    extend: unknown[]
     /**
      * Creation timestamp
      * @example 1755104571
@@ -1172,7 +1172,7 @@ export interface RouzaoOrderDetail {
           isAddPrivateWework: boolean
         }
         innerCount: number
-        share_info: any[]
+        share_info: unknown[]
         yingePrice: number
         tieredPrice: {
           count: number
@@ -1284,7 +1284,7 @@ export interface RouzaoOrderDetail {
        */
       warehouseId: number
       cp30FeeTotal: number
-      selectTicket: any[]
+      selectTicket: unknown[]
       /**
        * Selected shipping company code
        * @example "postb"
@@ -1334,7 +1334,7 @@ export interface RouzaoOrderDetail {
        * @example "11天发货"
        */
       estimatedShippingAtText: string
-      packageShippingDiscount: any[]
+      packageShippingDiscount: unknown[]
       freeShippingProductAmount: number
       /**
        * Urgent estimated shipping days
