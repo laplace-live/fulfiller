@@ -22,7 +22,7 @@
     "@shopify/shopify-api": "^11.14.1",
     "croner": "^9.1.0",
     "drizzle-kit": "^0.31.4",
-    "drizzle-orm": "^0.44.4",
+    "drizzle-orm": "^0.44.5",
     "pino": "^9.9.0"
   },
   "devDependencies": {
