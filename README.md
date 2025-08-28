@@ -1,6 +1,6 @@
 # LAPLACE Fulfiller
 
-Multi-provider automated fulfillment service that syncs third-party warehouse order shipments to Shopify using GraphQL Admin API.
+Automated fulfillment framework that syncs order shipments from third-party warehouses without native Shopify integration to Shopify using the GraphQL Admin API.
 
 ## Features
 
@@ -371,27 +371,27 @@ Each provider must implement the `Provider` interface:
 
 ```typescript
 interface Provider {
-  id: string // Unique provider identifier
-  name: string // Human-readable name
-  locationIds: string[] // Shopify location IDs managed by this provider
+  id: string; // Unique provider identifier
+  name: string; // Human-readable name
+  locationIds: string[]; // Shopify location IDs managed by this provider
 
   // Check if provider has required configuration
-  isConfigured(): boolean
+  isConfigured(): boolean;
 
   // Check if a location belongs to this provider
-  isProviderLocation(locationName: string, locationId: string): boolean
+  isProviderLocation(locationName: string, locationId: string): boolean;
 
   // Fetch shipped orders from the provider
-  fetchShippedOrders(): Promise<ProviderOrder[]>
+  fetchShippedOrders(): Promise<ProviderOrder[]>;
 
   // Fetch detailed order information
-  fetchOrderDetail(orderId: string): Promise<ProviderOrderDetail | null>
+  fetchOrderDetail(orderId: string): Promise<ProviderOrderDetail | null>;
 
   // Extract Shopify order number from provider's data
-  extractShopifyOrderNumber(orderDetail: ProviderOrderDetail): string | null
+  extractShopifyOrderNumber(orderDetail: ProviderOrderDetail): string | null;
 
   // Get tracking information
-  getTrackingInfo(orderDetail: ProviderOrderDetail): TrackingInfo
+  getTrackingInfo(orderDetail: ProviderOrderDetail): TrackingInfo;
 }
 ```
 
@@ -412,10 +412,10 @@ interface Provider {
 3. **Register the provider** in `src/lib/providers/registry.ts`:
 
    ```typescript
-   import { myProvider } from './myprovider'
+   import { myProvider } from "./myprovider";
 
    // In the constructor
-   this.register(myProvider)
+   this.register(myProvider);
    ```
 
 4. **Add environment variables** to `.env`:
@@ -451,9 +451,9 @@ Example:
 // HiCustom uses '顺丰速运' for SF Express
 // Both resolve to the same carrier with tracking URL
 
-const trackingDetails = getTrackingDetails('sf', '123456')
+const trackingDetails = getTrackingDetails("sf", "123456");
 // or
-const trackingDetails = getTrackingDetails('顺丰速运', '123456')
+const trackingDetails = getTrackingDetails("顺丰速运", "123456");
 
 // Both return:
 // {
@@ -499,7 +499,7 @@ Each provider implements an `isConfigured()` method that checks for required env
 ```typescript
 class MyProvider implements Provider {
   isConfigured(): boolean {
-    return !!process.env['MYPROVIDER_API_KEY']
+    return !!process.env["MYPROVIDER_API_KEY"];
   }
 }
 ```
