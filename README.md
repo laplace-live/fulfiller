@@ -10,7 +10,6 @@ Automated fulfillment framework that syncs order shipments from third-party ware
 - **Duplicate Prevention**: Turso database tracks fulfilled orders across all providers
 - **Provider-Specific Logic**: Each provider can have custom order extraction and tracking logic
 - **Type-Safe GraphQL**: Uses Shopify's GraphQL Admin API (2025-07) with automatic type generation
-- **Modern Architecture**: Clean code organization with path aliasing (`@/`) and JSDoc documentation
 - **Built-in Providers**:
   - Rouzao - Chinese fulfillment provider
   - HiCustom - Chinese POD fulfillment provider
