@@ -31,7 +31,7 @@ bun install
 
 Create a `.env` file in the project root with the following variables:
 
-```env
+```dotenv
 # Turso Database Configuration (Required)
 TURSO_DATABASE_URL=libsql://your-database-turso.io
 TURSO_AUTH_TOKEN=your-turso-auth-token
@@ -419,7 +419,7 @@ interface Provider {
 
 4. **Add environment variables** to `.env`:
 
-   ```env
+   ```dotenv
    MYPROVIDER_API_KEY=your-api-key
    MYPROVIDER_API_SECRET=your-secret
    ```
@@ -478,7 +478,7 @@ Providers are automatically enabled or disabled based on their configuration:
 
 For example:
 
-```env
+```dotenv
 # Rouzao will be enabled (has required token)
 ROUZAO_TOKEN=abc123
 ROUZAO_LOCATION_IDS=gid://shopify/Location/123,gid://shopify/Location/456  # Optional
