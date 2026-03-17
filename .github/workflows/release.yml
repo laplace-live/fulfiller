@@ -32,7 +32,9 @@ jobs:
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${{ github.event.workflow_run.head_branch }}" >> $GITHUB_OUTPUT
+        env:
+          VERSION: ${{ github.event.workflow_run.head_branch }}
+        run: echo "VERSION=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
