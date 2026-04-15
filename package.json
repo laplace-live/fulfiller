@@ -27,10 +27,8 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.2",
-    "@ianvs/prettier-plugin-sort-imports": "^4.6.2",
     "@shopify/api-codegen-preset": "^1.1.9",
-    "@types/bun": "^1.2.20",
-    "prettier": "^3.6.2"
+    "@types/bun": "^1.2.20"
   },
   "peerDependencies": {
     "typescript": "^5.9.2"
