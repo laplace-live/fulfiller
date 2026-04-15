@@ -20,6 +20,9 @@ const logger = createLogger('hicustom')
  */
 const HICUSTOM_API_BASE = process.env.HICUSTOM_API_URL || 'https://api.hicustom.com'
 
+/** How far back to fetch orders, in days */
+const ORDER_LOOKBACK_DAYS = 60
+
 /**
  * Location IDs for HiCustom fulfillment
  * Can be overridden by HICUSTOM_LOCATION_IDS env var
@@ -200,34 +203,67 @@ class HiCustomProvider implements Provider {
    * @link http://xiaoyaoji.cn/project/1jPL8Hr5Xf7/1jVoxB3SjVQ
    */
   async fetchShippedOrders(): Promise<ProviderOrder[]> {
+    const PAGE_SIZE = 100
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - ORDER_LOOKBACK_DAYS)
+    const allOrders: HiCustomOrder[] = []
+
     try {
-      logger.info(`Fetching orders...`)
-
       const accessToken = await this.getAccessToken()
-      const url = `${HICUSTOM_API_BASE}/api/v1/orders?status=9&page_size=50&access_token=${accessToken}`
+      let page = 1
+      let hasMore = true
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-      })
+      while (hasMore) {
+        const url = `${HICUSTOM_API_BASE}/api/v1/orders?status=9&page=${page}&page_size=${PAGE_SIZE}&access_token=${accessToken}`
+        logger.info({ page, lookbackDays: ORDER_LOOKBACK_DAYS }, `Fetching orders...`)
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const json: HiCustomOrderListResponse = await response.json()
+
+        if (json.code !== 200) {
+          throw new Error(`API error: ${json.msg}`)
+        }
+
+        if (page === 1) {
+          logger.info(
+            { total: json.data.total, lastPage: json.data.last_page, cutoff: cutoff.toISOString() },
+            `Total orders in account`
+          )
+        }
+
+        const pageOrders = json.data.data
+        if (pageOrders.length === 0) break
+
+        for (const order of pageOrders) {
+          const orderDate = new Date(order.created)
+          if (orderDate < cutoff) {
+            hasMore = false
+            break
+          }
+          allOrders.push(order)
+        }
+
+        if (hasMore && page >= json.data.last_page) {
+          hasMore = false
+        }
+
+        page++
       }
 
-      const json: HiCustomOrderListResponse = await response.json()
+      logger.info({ count: allOrders.length, pages: page - 1 }, `Fetched orders within lookback window`)
 
-      if (json.code !== 200) {
-        throw new Error(`API error: ${json.msg}`)
-      }
-
-      logger.info({ count: json.data.data.length }, `Fetched orders`)
-
-      // Map HiCustom orders to ProviderOrder
-      const shippedOrders = json.data.data
-        .filter(order => order.status === 9) // Status 9 = shipped
+      const shippedOrders = allOrders
+        .filter(order => order.status === 9)
         .map(
           (order): ProviderOrder<HiCustomOrder> => ({
             orderId: order.order_id,
