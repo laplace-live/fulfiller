@@ -157,7 +157,7 @@ logger.info({ providers: providerRegistry.getEnabledProviders().map(p => p.name)
 
 if (!runOnce) {
   // Create cron job
-  const job = new Cron('*/5 * * * *', async () => {
+  const job = new Cron('*/30 * * * *', async () => {
     await processAllProviders()
   })
 

@@ -9,6 +9,9 @@ const logger = createLogger('rouzao')
 // Rouzao-specific configuration
 const ROUZAO_API_BASE = 'https://api.rouzao.com'
 
+/** How far back to fetch orders, in days */
+const ORDER_LOOKBACK_DAYS = 90
+
 /**
  * Default location IDs for Rouzao fulfillment
  * Can be overridden by ROUZAO_LOCATION_IDS env var
@@ -45,7 +48,7 @@ class RouzaoProvider implements Provider {
       'Rouzao-Token': rouzaoToken,
       'Rouzao-Web-Ver': '1',
       'User-Agent':
-        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36',
       Referer: 'https://www.rouzao.com/',
       Origin: 'https://www.rouzao.com',
       Accept: 'application/json, text/plain, */*',
@@ -59,24 +62,55 @@ class RouzaoProvider implements Provider {
   }
 
   async fetchShippedOrders(): Promise<ProviderOrder[]> {
-    const API_URL = `${ROUZAO_API_BASE}/talent/order?page=1&page_size=100`
+    const PAGE_SIZE = 100
+    const cutoff = new Date()
+    cutoff.setDate(cutoff.getDate() - ORDER_LOOKBACK_DAYS)
+    const allOrders: RouzaoOrderItem[] = []
 
     try {
-      logger.info(`Fetching orders...`)
+      let page = 1
+      let hasMore = true
 
-      const resp = await fetch(API_URL, {
-        headers: this.getHeaders(),
-      })
+      while (hasMore) {
+        const url = `${ROUZAO_API_BASE}/talent/order?page=${page}&page_size=${PAGE_SIZE}`
+        logger.info({ page, lookbackDays: ORDER_LOOKBACK_DAYS }, `Fetching orders...`)
 
-      if (!resp.ok) {
-        throw new Error(`HTTP error! status: ${resp.status}`)
+        const resp = await fetch(url, {
+          headers: this.getHeaders(),
+        })
+
+        if (!resp.ok) {
+          throw new Error(`HTTP error! status: ${resp.status}`)
+        }
+
+        const json: RouzaoOrders = await resp.json()
+
+        if (page === 1) {
+          logger.info({ total: json.data.total, cutoff: cutoff.toISOString() }, `Total orders in account`)
+        }
+
+        const pageOrders = json.data.data
+        if (pageOrders.length === 0) break
+
+        for (const order of pageOrders) {
+          const orderDate = new Date(order.created_at)
+          if (orderDate < cutoff) {
+            hasMore = false
+            break
+          }
+          allOrders.push(order)
+        }
+
+        if (hasMore && pageOrders.length < PAGE_SIZE) {
+          hasMore = false
+        }
+
+        page++
       }
 
-      const json: RouzaoOrders = await resp.json()
-      logger.info({ count: json.data.data.length }, `Fetched orders`)
+      logger.info({ count: allOrders.length, pages: page - 1 }, `Fetched orders within lookback window`)
 
-      // Filter and map shipped orders
-      const shippedOrders = json.data.data
+      const shippedOrders = allOrders
         .filter((order: RouzaoOrderItem) => order.order_status === '已发货')
         .map(
           (order: RouzaoOrderItem): ProviderOrder<RouzaoOrderItem> => ({
