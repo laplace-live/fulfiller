@@ -59,7 +59,7 @@ class RouzaoProvider implements Provider {
   }
 
   async fetchShippedOrders(): Promise<ProviderOrder[]> {
-    const API_URL = `${ROUZAO_API_BASE}/talent/order?page=1&page_size=50`
+    const API_URL = `${ROUZAO_API_BASE}/talent/order?page=1&page_size=100`
 
     try {
       logger.info(`Fetching orders...`)
